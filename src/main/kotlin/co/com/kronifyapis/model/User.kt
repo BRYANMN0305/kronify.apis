@@ -12,36 +12,39 @@ import java.util.UUID
 
 @Entity
 @Table(name = "users")
-class User {
-
+class User(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "user_id")
-    var userId: UUID? = null
+    var userId: UUID? = null,
 
     @Column(name = "name", nullable = false)
-    var name: String = ""
+    var name: String = "",
+
+    @Column(name = "last_name", nullable = false)
+    var lastName: String = "",
 
     @Column(name = "phone_number")
-    var phoneNumber: String? = null
+    var phoneNumber: String? = null,
 
     @Column(name = "email", nullable = false, unique = true)
-    var email: String = ""
+    var email: String = "",
 
     @Column(name = "verified_email", nullable = false)
-    var verifiedEmail: Boolean = false
+    var verifiedEmail: Boolean = false,
 
     @Column(name = "password_hash")
-    var passwordHash: String = ""
+    var passwordHash: String = "",
 
     @Column(name = "active", nullable = false)
-    var active: Boolean = true
+    var active: Boolean = true,
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    var createdAt: LocalDateTime = LocalDateTime.now()
+    var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
+) {
 
     @PreUpdate
     fun onUpdate() {
@@ -55,5 +58,4 @@ class User {
     }
 
     override fun hashCode(): Int = javaClass.hashCode()
-
 }

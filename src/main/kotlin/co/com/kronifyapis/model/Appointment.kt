@@ -14,7 +14,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @Entity
-@Table(name = "appointment")
+@Table(name = "appointments")
 class Appointment {
 
     @Id

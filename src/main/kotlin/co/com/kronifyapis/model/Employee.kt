@@ -16,11 +16,12 @@ import java.util.UUID
 
 @Entity
 @Table(
-    name = "employee",
+    name = "employees",
     uniqueConstraints = [
         UniqueConstraint(columnNames = ["user_id", "business_id"])
     ]
 )
+
 class Employee {
 
     @Id

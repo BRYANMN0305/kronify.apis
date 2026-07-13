@@ -14,7 +14,7 @@ import java.util.UUID
 
 @Entity
 @Table(
-    name = "employee_service",
+    name = "employee_services",
     uniqueConstraints = [
         UniqueConstraint(columnNames = ["service_id", "employee_id"])
     ]
