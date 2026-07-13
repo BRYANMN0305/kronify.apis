@@ -7,6 +7,5 @@ import org.springframework.boot.runApplication
 class KronifyApisApplication
 
 fun main(args: Array<String>) {
-    println("DATABASE_URL = " + System.getenv("DATABASE_URL"))
     runApplication<KronifyApisApplication>(*args)
 }
