@@ -13,7 +13,7 @@ import java.time.LocalTime
 import java.util.UUID
 
 @Entity
-@Table(name = "weekly_schedule")
+@Table(name = "weekly_schedules")
 class WeeklySchedule {
 
     @Id

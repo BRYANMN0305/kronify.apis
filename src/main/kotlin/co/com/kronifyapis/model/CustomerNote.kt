@@ -13,7 +13,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @Entity
-@Table(name = "customer_note")
+@Table(name = "customer_notes")
 class CustomerNote {
 
     @Id
