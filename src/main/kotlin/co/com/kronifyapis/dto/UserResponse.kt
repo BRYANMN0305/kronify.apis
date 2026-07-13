@@ -10,6 +10,7 @@ data class UserResponse(
     val phoneNumber: String?,
     val email: String,
     val verifiedEmail: Boolean,
+    val profileType: ProfileType,
     val active: Boolean,
     val createdAt: LocalDateTime,
 )
