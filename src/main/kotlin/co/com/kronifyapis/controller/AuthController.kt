@@ -1,7 +1,9 @@
 package co.com.kronifyapis.controller
 
-import co.com.kronifyapis.dto.UserRegisterRequest
-import co.com.kronifyapis.dto.UserResponse
+import co.com.kronifyapis.dto.auth.LoginRequest
+import co.com.kronifyapis.dto.auth.TokenResponse
+import co.com.kronifyapis.dto.auth.UserRegisterRequest
+import co.com.kronifyapis.dto.user.UserResponse
 import co.com.kronifyapis.service.AuthService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -23,4 +25,10 @@ class AuthController (private val authService: AuthService){
         .body(authService.register(request))
     }
 
+    @PostMapping("/login")
+    fun login(@Valid @RequestBody request: LoginRequest) : ResponseEntity<TokenResponse> {
+        return ResponseEntity
+            .ok(authService.login(request))
+
+    }
 }
