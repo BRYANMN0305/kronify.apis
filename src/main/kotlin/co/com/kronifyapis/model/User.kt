@@ -1,7 +1,10 @@
 package co.com.kronifyapis.model
 
+import co.com.kronifyapis.dto.ProfileType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -30,8 +33,9 @@ class User(
     @Column(name = "email", nullable = false, unique = true)
     var email: String = "",
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "profile_type", nullable = false)
-    var profileType: String = "",
+    var profileType: ProfileType = ProfileType.CLIENT,
 
     @Column(name = "verified_email", nullable = false)
     var verifiedEmail: Boolean = false,
