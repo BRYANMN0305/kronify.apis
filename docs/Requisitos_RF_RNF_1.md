@@ -1,60 +1,60 @@
-# Requisitos del Sistema — Plataforma de Reservas y Gestión de Clientes
+# Requisitos del Sistema - Plataforma de Reservas y Gestion de Clientes
 
 ## Requisitos Funcionales (RF)
 
-### Módulo 1 — Autenticación y gestión de cuentas
+### Modulo 1 - Autenticacion y gestion de cuentas
 
-- **RF01** – El sistema debe permitir que todos los usuarios (Negocio/Prestador, Empleado y Cliente) se registren e inicien sesión mediante email/contraseña, OAuth2 con Google, u OAuth2 con Microsoft.
-- **RF02** – Al crear una cuenta, el sistema debe presentar únicamente dos opciones de tipo de perfil: **"Soy Cliente"** o **"Soy Negocio"**. El rol Empleado no se elige en este paso; se asigna al aceptar una invitación.
-- **RF03** – El sistema debe permitir que cualquier usuario se registre e inicie sesión vía OAuth2, vinculando la identidad del proveedor a una cuenta interna del sistema.
-- **RF04** – Si un usuario se registra por OAuth2 y luego intenta iniciar sesión con el mismo correo mediante método tradicional (o viceversa), el sistema debe manejar la vinculación/conflicto de cuentas de forma consistente (unificar por email verificado).
-- **RF05** – El sistema debe emitir un JWT propio tras una autenticación exitosa (tradicional u OAuth2), manteniendo un esquema de sesión único para toda la plataforma.
-- **RF06** – Todo usuario debe contar con un panel de configuración personal donde pueda editar nombre, teléfono, cambiar contraseña (si aplica) y gestionar sus métodos de autenticación vinculados.
-- **RF07** – El Prestador debe contar, adicionalmente, con una sección separada de configuración del negocio (nombre, descripción, logo, slug), distinta de su panel personal.
+- **RF01** - El sistema debe permitir que los usuarios se registren e inicien sesion mediante email/contrasena, OAuth2 con Google, u OAuth2 con Microsoft.
+- **RF02** - Al crear una cuenta, el sistema debe presentar un perfil global unico: **"Soy Cliente"** o **"Soy Negocio"**. Una cuenta no puede cambiar ni combinar ambos perfiles dentro del MVP. El Empleado se maneja como un usuario de tipo Negocio vinculado a un negocio por invitacion.
+- **RF03** - El sistema debe permitir que cualquier usuario se registre e inicie sesion via OAuth2, vinculando la identidad del proveedor a una cuenta interna del sistema.
+- **RF04** - Si un usuario se registra por OAuth2 y luego intenta iniciar sesion con el mismo correo mediante metodo tradicional, o viceversa, el sistema debe manejar la vinculacion/conflicto de cuentas de forma consistente.
+- **RF05** - El sistema debe emitir un JWT propio tras una autenticacion exitosa, manteniendo un esquema de sesion unico para toda la plataforma.
+- **RF06** - Todo usuario debe contar con un panel de configuracion personal donde pueda editar nombre, telefono, cambiar contrasena si aplica y gestionar sus metodos de autenticacion vinculados.
+- **RF07** - El Prestador debe contar, adicionalmente, con una seccion separada de configuracion del negocio.
 
-### Módulo 2 — Gestión de empleados
+### Modulo 2 - Gestion de empleados
 
-- **RF08** – El Prestador debe poder invitar empleados ingresando su dirección de correo electrónico, generando una invitación pendiente (sin crear la cuenta directamente).
-- **RF09** – El Empleado invitado debe poder registrarse de forma independiente con cualquiera de los métodos de autenticación soportados, usando el correo invitado.
-- **RF10** – Al completar su registro (o si ya tenía cuenta con ese correo), el sistema debe vincular automáticamente al Empleado con el negocio que lo invitó, asignándole el rol correspondiente dentro de ese tenant.
-- **RF11** – El Prestador debe poder visualizar el estado de cada invitación (pendiente/aceptada) y reenviar o cancelar invitaciones pendientes.
-- **RF12** – El sistema debe soportar el flag `es_dueño`, permitiendo que el Prestador opere también como Empleado con un único JWT combinando permisos.
-- **RF13** – El Prestador debe poder asignar servicios específicos a cada Empleado.
-- **RF32** – Por defecto, todo Empleado debe poder gestionar libremente su propio horario semanal base y sus bloqueos puntuales de disponibilidad. El Prestador debe poder, opcionalmente, restringir esta autogestión para un Empleado específico, tomando control centralizado de su horario cuando el modelo de negocio lo requiera.
-- **RF33** – Si un Empleado intenta crear un bloqueo que coincide con una cita ya confirmada, el sistema debe impedir la acción o solicitar la reprogramación/cancelación previa de dicha cita.
+- **RF08** - El Prestador debe poder invitar empleados ingresando su correo electronico, generando una invitacion pendiente.
+- **RF09** - El Empleado invitado debe poder registrarse con cualquiera de los metodos de autenticacion soportados, usando el correo invitado. Si el correo ya pertenece a una cuenta Cliente, la invitacion no debe aceptarse con esa cuenta.
+- **RF10** - Al completar su registro como usuario de tipo Negocio, o si ya tenia una cuenta Negocio con ese correo, el sistema debe vincular al Empleado con el negocio mediante un registro de Empleado.
+- **RF11** - El Prestador debe poder visualizar el estado de cada invitacion y reenviar o cancelar invitaciones pendientes.
+- **RF12** - El sistema debe soportar el flag `owner`, permitiendo que el Prestador opere tambien como Empleado del mismo negocio con su misma cuenta de tipo Negocio.
+- **RF13** - El Prestador debe poder asignar servicios especificos a cada Empleado.
+- **RF32** - Por defecto, todo Empleado debe poder gestionar su propio horario semanal base y sus bloqueos puntuales. El Prestador debe poder restringir esta autogestion para un Empleado especifico.
+- **RF33** - Si un Empleado intenta crear un bloqueo que coincide con una cita confirmada, el sistema debe impedir la accion o solicitar reprogramacion/cancelacion previa.
 
-### Módulo 3 — Gestión del negocio
+### Modulo 3 - Gestion del negocio
 
-- **RF14** – El Prestador debe poder crear, editar y eliminar servicios (nombre, duración, precio, descripción).
-- **RF15** – El Prestador debe poder definir horarios semanales de disponibilidad por empleado.
-- **RF16** – El Prestador debe poder definir bloqueos puntuales (vacaciones, permisos, días no laborables).
-- **RF17** – El Prestador debe poder visualizar y gestionar todas las citas del negocio.
+- **RF14** - El Prestador debe poder crear, editar y eliminar servicios.
+- **RF15** - El Prestador debe poder definir horarios semanales de disponibilidad por empleado.
+- **RF16** - El Prestador debe poder definir bloqueos puntuales.
+- **RF17** - El Prestador debe poder visualizar y gestionar todas las citas del negocio.
 
-### Módulo 4 — Motor de disponibilidad
+### Modulo 4 - Motor de disponibilidad
 
-- **RF18** – El sistema debe calcular los espacios disponibles para agendar una cita según servicio, fecha y empleado (opcional), considerando horarios semanales, bloqueos puntuales y citas existentes.
-- **RF19** – El motor de disponibilidad debe funcionar como componente puro de dominio, sin dependencias de infraestructura.
+- **RF18** - El sistema debe calcular espacios disponibles segun servicio, fecha y empleado opcional, considerando horarios semanales, bloqueos y citas existentes.
+- **RF19** - El motor de disponibilidad debe funcionar como componente puro de dominio, sin dependencias de infraestructura.
 
-### Módulo 5 — Reservas y agenda
+### Modulo 5 - Reservas y agenda
 
-- **RF20** – El Cliente debe poder ver la página pública del negocio (mediante un slug único) con sus servicios y disponibilidad.
-- **RF21** – El Cliente debe poder reservar una cita seleccionando servicio, empleado (opcional) y horario disponible.
-- **RF22** – Si el Cliente tiene sesión iniciada, el sistema debe autocompletar automáticamente sus datos de contacto (nombre, teléfono, email) en el formulario de reserva, requiriendo solo la selección de servicio/empleado/horario. El Cliente debe poder editar estos datos si la reserva es para un tercero.
-- **RF23** – El sistema debe enviar confirmación de la cita con opción de contacto directo vía mensaje prellenado a un canal externo de mensajería.
-- **RF24** – El Empleado debe poder ver su propia agenda de citas.
-- **RF25** – El sistema debe ofrecer una vista de calendario unificada con filtro por columna de empleado (por defecto, todos).
-- **RF26** – El Prestador/Empleado debe poder cancelar o reprogramar una cita.
-- **RF27** – El Cliente debe poder cancelar su propia cita (según política definida).
+- **RF20** - El Cliente debe poder ver la pagina publica del negocio mediante slug unico.
+- **RF21** - El Cliente debe poder reservar una cita seleccionando servicio, empleado opcional y horario disponible.
+- **RF22** - Si el Cliente tiene sesion iniciada, el sistema debe autocompletar sus datos de contacto en el formulario de reserva.
+- **RF23** - El sistema debe enviar confirmacion de la cita con opcion de contacto directo por canal externo de mensajeria.
+- **RF24** - El Empleado debe poder ver su propia agenda de citas.
+- **RF25** - El sistema debe ofrecer una vista de calendario unificada con filtro por empleado.
+- **RF26** - El Prestador/Empleado debe poder cancelar o reprogramar una cita.
+- **RF27** - El Cliente debe poder cancelar su propia cita segun politica definida.
 
-### Módulo 6 — Reseñas
+### Modulo 6 - Resenas
 
-- **RF28** – El sistema debe permitir que Clientes registrados con citas completadas dejen una reseña (calificación y comentario).
-- **RF29** – El sistema debe mostrar las reseñas en la página pública del negocio.
+- **RF28** - El sistema debe permitir que Clientes registrados con citas completadas dejen una resena.
+- **RF29** - El sistema debe mostrar las resenas en la pagina publica del negocio.
 
-### Módulo 7 — Planes y límites (freemium)
+### Modulo 7 - Planes y limites
 
-- **RF30** – El sistema debe restringir el número de servicios y/o citas según el plan del Prestador (gratuito vs. pago).
-- **RF31** – El sistema debe permitir distinguir y aplicar las funcionalidades habilitadas según el plan activo.
+- **RF30** - El sistema debe restringir el numero de servicios y/o citas segun el plan del Prestador.
+- **RF31** - El sistema debe distinguir y aplicar funcionalidades habilitadas segun el plan activo.
 
 ---
 
@@ -62,26 +62,26 @@
 
 ### Arquitectura y rendimiento
 
-- **RNF01 – API-first:** el backend debe exponer una API REST estructurada para permitir el consumo futuro desde una app móvil sin cambios en el backend.
-- **RNF02 – Multitenancy:** el sistema debe aislar correctamente los datos entre distintos negocios (tenants) identificados por slug.
-- **RNF03 – Rendimiento del motor de disponibilidad:** el cálculo de horarios disponibles debe responder en tiempo aceptable (idealmente <500ms) incluso con múltiples empleados y reglas de horario.
-- **RNF04 – Mantenibilidad:** el motor de disponibilidad debe mantenerse en la capa de dominio, desacoplado de infraestructura, siguiendo una arquitectura en capas.
-- **RNF05 – Escalabilidad lógica:** el diseño debe permitir agregar nuevos roles, planes o integraciones (pasarela de pago, notificaciones) sin romper la arquitectura existente.
+- **RNF01 - API-first:** el backend debe exponer una API REST estructurada.
+- **RNF02 - Aislamiento por negocio:** el sistema debe aislar correctamente los datos de distintos negocios identificados por slug.
+- **RNF03 - Rendimiento del motor de disponibilidad:** el calculo de horarios disponibles debe responder en tiempo aceptable.
+- **RNF04 - Mantenibilidad:** el motor de disponibilidad debe mantenerse desacoplado de infraestructura.
+- **RNF05 - Escalabilidad logica:** el diseno debe permitir agregar planes o integraciones sin romper la arquitectura. La gestion de roles se mantiene simple para el MVP.
 
-### Seguridad y autenticación
+### Seguridad y autenticacion
 
-- **RNF06 – Seguridad:** toda comunicación autenticada debe usar JWT; las contraseñas (cuando aplique) deben almacenarse con hash seguro; los tokens OAuth2 deben manejarse con buenas prácticas (sin client secrets en frontend, validación de tokens en backend, HTTPS en todos los flujos de redirect).
-- **RNF07 – Interoperabilidad de autenticación:** el sistema debe seguir el flujo estándar OAuth2 (Authorization Code Flow, con PKCE si el frontend es SPA) y ser extensible a otros proveedores sin rediseñar el módulo de autenticación.
-- **RNF08 – Consistencia de identidad multi-rol:** un mismo email debe poder estar asociado a distintos roles en distintos tenants (ej. Cliente en un negocio, Empleado en otro) sin conflicto, dado que el rol es contextual al tenant.
-- **RNF09 – Integridad de invitaciones:** las invitaciones a empleados deben poder expirar o cancelarse, y no deben vincular un correo a un negocio sin consentimiento explícito del invitado.
+- **RNF06 - Seguridad:** toda comunicacion autenticada debe usar JWT; las contrasenas deben almacenarse con hash seguro.
+- **RNF07 - Interoperabilidad de autenticacion:** el sistema debe seguir flujos OAuth2 estandar y permitir nuevos proveedores.
+- **RNF08 - Consistencia de perfil unico:** un mismo email debe estar asociado a un unico perfil global (`Cliente` o `Negocio`). El sistema debe impedir que una cuenta Cliente sea usada como Empleado/Prestador, y debe impedir que una cuenta Negocio actue como Cliente registrado.
+- **RNF09 - Integridad de invitaciones:** las invitaciones deben poder expirar o cancelarse, y no deben vincular un correo a un negocio sin consentimiento.
 
-### Infraestructura y operación
+### Infraestructura y operacion
 
-- **RNF10 – Compatibilidad de hosting:** el backend debe ejecutarse dentro de los límites de un plan de hosting gratuito o de bajo costo; el frontend debe desplegarse con ruteo basado en slugs (no subdominios).
-- **RNF11 – Disponibilidad:** el sistema debe estar operativo y accesible públicamente durante la sustentación académica y uso comercial posterior, dentro de las limitaciones de infraestructura disponibles.
-- **RNF12 – Portabilidad de datos:** el modelo de datos debe soportar exportación/migración futura si el proyecto escala más allá de la infraestructura inicial.
+- **RNF10 - Compatibilidad de hosting:** el backend debe ejecutarse dentro de infraestructura gratuita o de bajo costo.
+- **RNF11 - Disponibilidad:** el sistema debe estar operativo durante la sustentacion y uso posterior.
+- **RNF12 - Portabilidad de datos:** el modelo debe soportar exportacion/migracion futura.
 
-### Usabilidad y documentación
+### Usabilidad y documentacion
 
-- **RNF13 – Usabilidad:** la página pública de reservas debe ser utilizable sin necesidad de registro (modo invitado).
-- **RNF14 – Documentación técnica:** el motor de disponibilidad y la arquitectura general deben estar documentados con suficiente detalle para la defensa académica.
+- **RNF13 - Usabilidad:** la pagina publica de reservas debe ser utilizable sin registro.
+- **RNF14 - Documentacion tecnica:** el motor de disponibilidad y la arquitectura deben estar documentados para la defensa academica.
