@@ -1,4 +1,4 @@
-package co.com.kronifyapis.dto
+package co.com.kronifyapis.dto.user
 
 import java.time.LocalDateTime
 import java.util.UUID

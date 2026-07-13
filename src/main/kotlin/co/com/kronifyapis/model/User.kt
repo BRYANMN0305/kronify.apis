@@ -1,6 +1,6 @@
 package co.com.kronifyapis.model
 
-import co.com.kronifyapis.dto.ProfileType
+import co.com.kronifyapis.dto.user.ProfileType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType

@@ -1,8 +1,10 @@
 package co.com.kronifyapis.service
 
-import co.com.kronifyapis.dto.ProfileType
-import co.com.kronifyapis.dto.UserRegisterRequest
-import co.com.kronifyapis.dto.UserResponse
+import co.com.kronifyapis.dto.auth.LoginRequest
+import co.com.kronifyapis.dto.auth.TokenResponse
+import co.com.kronifyapis.dto.user.ProfileType
+import co.com.kronifyapis.dto.auth.UserRegisterRequest
+import co.com.kronifyapis.dto.user.UserResponse
 import co.com.kronifyapis.model.User
 import co.com.kronifyapis.repository.UserRepository
 import org.springframework.http.HttpStatus
@@ -13,7 +15,8 @@ import org.springframework.web.server.ResponseStatusException
 @Service
 class AuthService(
     private val userRepository: UserRepository,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    private val jwtService: JwtService
 ) {
     fun register(request: UserRegisterRequest): UserResponse {
         val email = request.email.trim().lowercase()
@@ -62,6 +65,22 @@ class AuthService(
             profileType = profileType,
             active = active,
             createdAt = createdAt,
+        )
+    }
+
+    fun login(request: LoginRequest): TokenResponse {
+        val email = request.email.trim().lowercase()
+        val user = userRepository.findByEmail(email)
+            ?: throw IllegalArgumentException ("Invalid credentials")
+
+        if (!user.active || !passwordEncoder.matches(request.password, user.passwordHash)) {
+            throw IllegalArgumentException ("Invalid credentials")
+        }
+
+        val token = jwtService.generateToken(user)
+        return TokenResponse(
+            accessToken = token,
+            expiresIn = jwtService.expirationMinutes * 60
         )
     }
 }
