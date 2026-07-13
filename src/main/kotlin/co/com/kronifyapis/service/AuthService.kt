@@ -5,6 +5,7 @@ import co.com.kronifyapis.dto.auth.TokenResponse
 import co.com.kronifyapis.dto.user.ProfileType
 import co.com.kronifyapis.dto.auth.UserRegisterRequest
 import co.com.kronifyapis.dto.user.UserResponse
+import co.com.kronifyapis.exception.InvalidCredentialsException
 import co.com.kronifyapis.model.User
 import co.com.kronifyapis.repository.UserRepository
 import org.springframework.http.HttpStatus
@@ -71,10 +72,10 @@ class AuthService(
     fun login(request: LoginRequest): TokenResponse {
         val email = request.email.trim().lowercase()
         val user = userRepository.findByEmail(email)
-            ?: throw IllegalArgumentException ("Invalid credentials")
+            ?: throw InvalidCredentialsException("Invalid credentials")
 
         if (!user.active || !passwordEncoder.matches(request.password, user.passwordHash)) {
-            throw IllegalArgumentException ("Invalid credentials")
+            throw InvalidCredentialsException("Invalid credentials")
         }
 
         val token = jwtService.generateToken(user)
