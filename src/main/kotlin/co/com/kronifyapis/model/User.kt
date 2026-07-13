@@ -30,6 +30,9 @@ class User(
     @Column(name = "email", nullable = false, unique = true)
     var email: String = "",
 
+    @Column(name = "profile_type", nullable = false)
+    var profileType: String = "",
+
     @Column(name = "verified_email", nullable = false)
     var verifiedEmail: Boolean = false,
 
