@@ -23,4 +23,6 @@ data class UserRegisterRequest(
     @field:NotBlank
     @field:Size(min = 8)
     val passwordHash: String,
+
+    val profileType: String,
 )

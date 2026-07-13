@@ -1,5 +1,6 @@
 package co.com.kronifyapis.service
 
+import co.com.kronifyapis.dto.ProfileType
 import co.com.kronifyapis.dto.UserRegisterRequest
 import co.com.kronifyapis.dto.UserResponse
 import co.com.kronifyapis.model.User
@@ -24,12 +25,27 @@ class AuthService(
             )
         }
 
+        if (request.passwordHash.length < 8) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Password must be at least 8 characters long"
+            )
+        }
+
+        if (request.profileType != "CLIENT" && request.profileType != "BUSINESS") {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Profile type must be either 'CLIENT' or 'BUSINESS'"
+            )
+        }
+
         val user = User(
             name = request.name,
             lastName = request.lastName,
             phoneNumber = request.phoneNumber,
             email = email,
             passwordHash = requireNotNull(passwordEncoder.encode(request.passwordHash)),
+            profileType = ProfileType.valueOf(request.profileType),
         )
 
         return userRepository.save(user).toResponse()
@@ -43,6 +59,7 @@ class AuthService(
             phoneNumber = phoneNumber,
             email = email,
             verifiedEmail = verifiedEmail,
+            profileType = profileType,
             active = active,
             createdAt = createdAt,
         )
