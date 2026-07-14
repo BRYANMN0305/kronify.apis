@@ -3,15 +3,10 @@ package co.com.kronifyapis.dto.user
 import java.time.LocalDateTime
 import java.util.UUID
 
-data class UserResponse(
+data class UserUpdateResponse(
     val userId: UUID,
     val name: String,
     val lastName: String,
     val phoneNumber: String?,
-    val email: String,
-    val verifiedEmail: Boolean,
-    val profileType: ProfileType,
-    val active: Boolean,
-    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime
 )
-

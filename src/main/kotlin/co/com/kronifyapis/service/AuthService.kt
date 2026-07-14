@@ -6,6 +6,7 @@ import co.com.kronifyapis.dto.user.ProfileType
 import co.com.kronifyapis.dto.auth.UserRegisterRequest
 import co.com.kronifyapis.dto.user.UserResponse
 import co.com.kronifyapis.exception.InvalidCredentialsException
+import co.com.kronifyapis.exception.TypeError
 import co.com.kronifyapis.model.User
 import co.com.kronifyapis.repository.UserRepository
 import org.springframework.http.HttpStatus
@@ -23,10 +24,15 @@ class AuthService(
         val email = request.email.trim().lowercase()
 
         if (userRepository.existsByEmail(email)) {
-            throw ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "Email already exists"
-            )
+            throw TypeError("Email already exists")
+        }
+
+        if (request.name.matches(Regex("[^a-zA-Z ]"))) {
+            throw TypeError("Name must contain only letters")
+        }
+
+        if (request.lastName.matches(Regex("[^a-zA-Z ]"))) {
+            throw TypeError("Last Name must contain only letters")
         }
 
         if (request.passwordHash.length < 8) {
@@ -79,9 +85,13 @@ class AuthService(
         }
 
         val token = jwtService.generateToken(user)
+        return user.toTokenResponse(token, jwtService.getExpirationSeconds())
+    }
+
+    private fun User.toTokenResponse(token: String, expiresIn: Long): TokenResponse {
         return TokenResponse(
             accessToken = token,
-            expiresIn = jwtService.expirationMinutes * 60
+            expiresIn = expiresIn
         )
     }
 }
