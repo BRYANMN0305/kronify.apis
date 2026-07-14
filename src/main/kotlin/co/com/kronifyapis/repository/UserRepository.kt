@@ -13,4 +13,7 @@ interface UserRepository : JpaRepository<User, UUID> {
     fun existsByEmail(email: String): Boolean
 
 
+
+
+
 }
