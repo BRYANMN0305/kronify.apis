@@ -1,13 +1,11 @@
-// excepciones/GlobalExceptionHandler.kt
-package co.com.kronifyapis.excepciones
+package co.com.kronifyapis.exception
 
-import co.com.kronifyapis.exception.InvalidCredentialsException
-import co.com.kronifyapis.exception.ResourceNotFoundException
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.server.ResponseStatusException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -26,6 +24,31 @@ class GlobalExceptionHandler {
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
         return buildResponse(HttpStatus.NOT_FOUND, ex.message, request)
+    }
+
+    @ExceptionHandler(UserNotFoundException::class)
+    fun handleUserNotFoundException(
+        ex: UserNotFoundException,
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.message, request)
+    }
+
+    @ExceptionHandler(TypeError::class)
+    fun handleTypeError(
+        ex: TypeError,
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.message, request)
+    }
+
+    @ExceptionHandler(ResponseStatusException::class)
+    fun handleResponseStatusException(
+        ex: ResponseStatusException,
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.resolve(ex.statusCode.value()) ?: HttpStatus.INTERNAL_SERVER_ERROR
+        return buildResponse(status, ex.reason ?: ex.message, request)
     }
 
     @ExceptionHandler(Exception::class)

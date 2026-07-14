@@ -1,5 +1,4 @@
-// excepciones/ErrorResponse.kt
-package co.com.kronifyapis.excepciones
+package co.com.kronifyapis.exception
 
 import java.time.Instant
 

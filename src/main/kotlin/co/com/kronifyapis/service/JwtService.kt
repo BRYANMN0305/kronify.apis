@@ -24,16 +24,21 @@ class JwtService(
         val expiration = Date(now.time + expirationMinutes * 60_000)
 
         return Jwts.builder()
-            .subject(user.email)
+            .subject(user.userId.toString())
+            .claim("name", user.name)
+            .claim("lastName", user.lastName)
+            .claim("phoneNumber", user.phoneNumber)
+            .claim("email", user.email)
             .claim("profileType", user.profileType.name)
             .issuedAt(now)
             .expiration(expiration)
             .signWith(signingKey)
             .compact()
     }
+    fun getExpirationSeconds(): Long = expirationMinutes * 60
 
     fun extractEmail(token: String): String? {
-        return extractAllClaims(token)?.subject
+        return extractAllClaims(token)?.get("email", String::class.java)
     }
 
     fun isTokenValid(token: String): Boolean {
