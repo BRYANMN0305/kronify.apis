@@ -19,19 +19,17 @@ import java.util.UUID
         UniqueConstraint(columnNames = ["service_id", "employee_id"])
     ]
 )
-class EmployeeService {
-
+data class EmployeeService(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "employee_service_id")
-    var employeeServiceId: UUID? = null
+    var employeeServiceId: UUID? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_id", nullable = false)
-    var service: Service? = null
+    var service: Service? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
     var employee: Employee? = null
-}
-
+)

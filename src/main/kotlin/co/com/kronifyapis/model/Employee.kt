@@ -21,40 +21,37 @@ import java.util.UUID
         UniqueConstraint(columnNames = ["user_id", "business_id"])
     ]
 )
-
-class Employee {
-
+data class Employee(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "employee_id")
-    var employeeId: UUID? = null
+    var employeeId: UUID? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    var user: User? = null
+    var user: User? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "business_id", nullable = false)
-    var business: Business? = null
+    var business: Business? = null,
 
     @Column(name = "owner", nullable = false)
-    var owner: Boolean = false
+    var owner: Boolean = false,
 
     @Column(name = "self_managed_schedule", nullable = false)
-    var selfManagedSchedule: Boolean = true
+    var selfManagedSchedule: Boolean = true,
 
     @Column(name = "active", nullable = false)
-    var active: Boolean = true
+    var active: Boolean = true,
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    var createdAt: LocalDateTime = LocalDateTime.now()
+    var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-
+) {
     @PreUpdate
     fun onUpdate() {
         updatedAt = LocalDateTime.now()
     }
 }
-
