@@ -75,7 +75,11 @@ class GlobalExceptionHandler {
         ex: Exception,
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrió un error inesperado, error del servidor", request)
+        return buildResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Ocurrió un error inesperado, error del servidor",
+            request
+        )
     }
 
     private fun buildResponse(

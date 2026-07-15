@@ -2,7 +2,6 @@ package co.com.kronifyapis.service
 
 import co.com.kronifyapis.dto.business.BusinessCreateRequest
 import co.com.kronifyapis.dto.business.BusinessCreateResponse
-import co.com.kronifyapis.dto.business.BusinessUpdateRequest
 import co.com.kronifyapis.dto.business.BusinessUpdateResponse
 import co.com.kronifyapis.dto.user.ProfileType
 import co.com.kronifyapis.exception.ConflictException
@@ -85,7 +84,7 @@ class BusinessService(
     }
 
     @Transactional
-    fun updateBusiness(ownerId: UUID, request: BusinessUpdateRequest): BusinessUpdateResponse {
+    fun updateBusiness(ownerId: UUID, request: BusinessCreateRequest): BusinessUpdateResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
             ?: throw InvalidCredentialsException("Usuario no encontrado")
 
