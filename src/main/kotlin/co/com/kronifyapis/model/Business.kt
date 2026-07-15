@@ -38,6 +38,9 @@ class Business {
     @Column(name = "description")
     var description: String? = null
 
+    @Column(name = "address")
+    var address: String? = null
+
     @Column(name = "logo_url")
     var logoUrl: String? = null
 

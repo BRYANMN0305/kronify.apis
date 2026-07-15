@@ -1,6 +1,5 @@
 package co.com.kronifyapis.config
 
-import co.com.kronifyapis.repository.UserRepository
 import co.com.kronifyapis.service.JwtService
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -13,8 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 @Component
 class JwtAuthenticationFilter(
-    private val jwtService: JwtService,
-    private val userRepository: UserRepository
+    private val jwtService: JwtService
 ) : OncePerRequestFilter() {
 
     override fun doFilterInternal(
@@ -29,19 +27,16 @@ class JwtAuthenticationFilter(
         }
 
         val token = header.removePrefix("Bearer ").trim()
-        val email = jwtService.extractEmail(token)
+        val authenticatedUser = jwtService.extractAuthenticatedUser(token)
 
-        if (email != null && jwtService.isTokenValid(token) && SecurityContextHolder.getContext().authentication == null) {
-            val user = userRepository.findByEmail(email)
-            if (user != null) {
-                val authorities = listOf(SimpleGrantedAuthority("PROFILE_TYPE_${user.profileType.name}"))
+        if (authenticatedUser != null && jwtService.isTokenValid(token) && SecurityContextHolder.getContext().authentication == null) {
+                val authorities = listOf(SimpleGrantedAuthority("PROFILE_TYPE_${authenticatedUser.profileType.name}"))
                 val authentication = UsernamePasswordAuthenticationToken(
-                    user.email,
+                    authenticatedUser,
                     null,
                     authorities
                 )
                 SecurityContextHolder.getContext().authentication = authentication
-            }
         }
 
         filterChain.doFilter(request, response)
