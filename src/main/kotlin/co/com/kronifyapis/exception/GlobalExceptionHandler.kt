@@ -3,9 +3,9 @@ package co.com.kronifyapis.exception
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
-import org.springframework.web.server.ResponseStatusException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -34,21 +34,40 @@ class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.message, request)
     }
 
-    @ExceptionHandler(TypeError::class)
-    fun handleTypeError(
-        ex: TypeError,
+    @ExceptionHandler(BadRequestException::class, TypeErrorException::class)
+    fun handleBadRequest(
+        ex: RuntimeException,
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.message, request)
     }
 
-    @ExceptionHandler(ResponseStatusException::class)
-    fun handleResponseStatusException(
-        ex: ResponseStatusException,
+    @ExceptionHandler(ConflictException::class)
+    fun handleConflictException(
+        ex: ConflictException,
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
-        val status = HttpStatus.resolve(ex.statusCode.value()) ?: HttpStatus.INTERNAL_SERVER_ERROR
-        return buildResponse(status, ex.reason ?: ex.message, request)
+        return buildResponse(HttpStatus.CONFLICT, ex.message, request)
+    }
+
+    @ExceptionHandler(ForbiddenOperationException::class)
+    fun handleForbiddenOperationException(
+        ex: ForbiddenOperationException,
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.message, request)
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    fun handleMethodArgumentNotValidException(
+        ex: MethodArgumentNotValidException,
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        val message = ex.bindingResult.fieldErrors
+            .firstOrNull()
+            ?.defaultMessage
+            ?: "Validation error"
+        return buildResponse(HttpStatus.BAD_REQUEST, message, request)
     }
 
     @ExceptionHandler(Exception::class)
@@ -56,7 +75,7 @@ class GlobalExceptionHandler {
         ex: Exception,
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.message, request)
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrió un error inesperado, error del servidor", request)
     }
 
     private fun buildResponse(
