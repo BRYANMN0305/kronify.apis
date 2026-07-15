@@ -3,9 +3,7 @@ package co.com.kronifyapis.controller
 import co.com.kronifyapis.config.auth.AuthenticatedUser
 import co.com.kronifyapis.dto.business.BusinessCreateRequest
 import co.com.kronifyapis.dto.business.BusinessCreateResponse
-import co.com.kronifyapis.dto.business.BusinessUpdateRequest
 import co.com.kronifyapis.dto.business.BusinessUpdateResponse
-import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.service.BusinessService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -37,7 +35,7 @@ class BusinessController(private val businessService: BusinessService) {
     fun updateBusiness(
         @AuthenticationPrincipal user: AuthenticatedUser,
         @Valid
-        @RequestBody request: BusinessUpdateRequest
+        @RequestBody request: BusinessCreateRequest
     ): ResponseEntity<BusinessUpdateResponse> {
         val updatedBusiness = businessService.updateBusiness(user.userId, request)
         return ResponseEntity

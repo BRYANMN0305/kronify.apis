@@ -3,6 +3,7 @@ package co.com.kronifyapis.service
 import co.com.kronifyapis.dto.employeeInvitation.StatusType
 import co.com.kronifyapis.dto.employeeInvitation.InvitationResponse
 import co.com.kronifyapis.exception.ForbiddenOperationException
+import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.EmployeeInvitation
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeInvitationRepository
@@ -27,13 +28,13 @@ class EmployeeInvitationService(
     fun createInvitation(userId: UUID, businessId: UUID, email: String): InvitationResponse {
         ensureUserCanManageBusiness(userId, businessId)
         val business =
-            businessRepository.findById(businessId).orElseThrow { NoSuchElementException("Negocio no encontrado") }
+            businessRepository.findById(businessId).orElseThrow { ResourceNotFoundException("Negocio no encontrado") }
         val normalizedEmail = email.trim().lowercase()
 
         val existing = invitationRepository.findByBusiness_BusinessIdAndEmailAndStatus(
             businessId, normalizedEmail, StatusType.PENDING
         )
-        require(existing == null) { "Ya existe una invitación pendiente para este correo" }
+        require(existing == null) { ("Ya existe una invitación pendiente para este correo") }
 
         val invitation = EmployeeInvitation().apply {
             this.business = business
@@ -69,7 +70,7 @@ class EmployeeInvitationService(
 
     private fun getPendingOrThrow(businessId: UUID, invitationId: UUID): EmployeeInvitation {
         val invitation = invitationRepository.findById(invitationId)
-            .orElseThrow { NoSuchElementException("Invitación no encontrada") }
+            .orElseThrow { ResourceNotFoundException("Invitación no encontrada") }
         check(invitation.business?.businessId == businessId) { "La invitación no pertenece al negocio solicitado" }
         check(invitation.status == StatusType.PENDING) { "La invitación no está pendiente" }
         return invitation
@@ -82,9 +83,9 @@ class EmployeeInvitationService(
 
     private fun ensureUserCanManageBusiness(userId: UUID, businessId: UUID) {
         val user = userRepository.findByUserId(userId)
-            ?: throw NoSuchElementException("Usuario no encontrado")
+            ?: throw ResourceNotFoundException("Usuario no encontrado")
         val business = businessRepository.findById(businessId)
-            .orElseThrow { NoSuchElementException("Negocio no encontrado") }
+            .orElseThrow { ResourceNotFoundException("Negocio no encontrado") }
         val ownedBusiness = businessRepository.findByOwner(user)
             ?: throw ForbiddenOperationException("No tiene permiso para gestionar invitaciones de este negocio")
 
