@@ -1,11 +1,13 @@
 package co.com.kronifyapis.controller
 
+import co.com.kronifyapis.config.auth.AuthenticatedUser
 import co.com.kronifyapis.dto.employeeInvitation.CreateInvitationRequest
 import co.com.kronifyapis.dto.employeeInvitation.InvitationResponse
 import co.com.kronifyapis.service.EmployeeInvitationService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
 
@@ -17,32 +19,38 @@ class EmployeeInvitationController(
 
     @PostMapping("/")
     fun createInvitation(
+        @AuthenticationPrincipal user: AuthenticatedUser,
         @PathVariable businessId: UUID,
         @Valid @RequestBody request: CreateInvitationRequest
     ): ResponseEntity<InvitationResponse> {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(invitationService.createInvitation(businessId, request.email))
+            .body(invitationService.createInvitation(user.userId, businessId, request.email))
     }
 
     @GetMapping("/")
-    fun listInvitations(@PathVariable businessId: UUID): ResponseEntity<List<InvitationResponse>> {
-        return ResponseEntity.ok(invitationService.listInvitations(businessId))
+    fun listInvitations(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable businessId: UUID
+    ): ResponseEntity<List<InvitationResponse>> {
+        return ResponseEntity.ok(invitationService.listInvitations(user.userId, businessId))
     }
 
     @PostMapping("/{invitationId}/resend")
     fun resendInvitation(
+        @AuthenticationPrincipal user: AuthenticatedUser,
         @PathVariable businessId: UUID,
         @PathVariable invitationId: UUID
     ): ResponseEntity<InvitationResponse> {
-        return ResponseEntity.ok(invitationService.resendInvitation(invitationId))
+        return ResponseEntity.ok(invitationService.resendInvitation(user.userId, businessId, invitationId))
     }
 
     @PostMapping("/{invitationId}/cancel")
     fun cancelInvitation(
+        @AuthenticationPrincipal user: AuthenticatedUser,
         @PathVariable businessId: UUID,
         @PathVariable invitationId: UUID
     ): ResponseEntity<InvitationResponse> {
-        return ResponseEntity.ok(invitationService.cancelInvitation(invitationId))
+        return ResponseEntity.ok(invitationService.cancelInvitation(user.userId, businessId, invitationId))
     }
 
 }
