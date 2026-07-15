@@ -1,4 +1,4 @@
-package co.com.kronifyapis.config.auth
+package co.com.kronifyapis.config
 
 import co.com.kronifyapis.dto.user.ProfileType
 import java.util.UUID

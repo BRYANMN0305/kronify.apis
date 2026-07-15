@@ -1,5 +1,7 @@
 package co.com.kronifyapis.model
 
+import co.com.kronifyapis.dto.appointment.AppointmentOrigin
+import co.com.kronifyapis.dto.appointment.AppointmentStatus
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -8,6 +10,8 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.Enumerated
+import jakarta.persistence.EnumType
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import java.time.LocalDateTime
@@ -44,10 +48,12 @@ data class Appointment(
     var endAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "status", nullable = false)
-    var status: String = "pendiente",
+    @Enumerated(EnumType.STRING)
+    var status: AppointmentStatus = AppointmentStatus.PENDING,
 
     @Column(name = "origin", nullable = false)
-    var origin: String = "publica",
+    @Enumerated(EnumType.STRING)
+    var origin: AppointmentOrigin = AppointmentOrigin.PUBLIC,
 
     @Column(name = "cancellation_reason")
     var cancellationReason: String? = null,
