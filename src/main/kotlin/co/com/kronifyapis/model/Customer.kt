@@ -22,17 +22,8 @@ data class Customer(
     var customerId: UUID? = null,
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", unique = true)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     var user: User? = null,
-
-    @Column(name = "name", nullable = false)
-    var name: String = "",
-
-    @Column(name = "phone_number")
-    var phoneNumber: String? = null,
-
-    @Column(name = "email")
-    var email: String? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),

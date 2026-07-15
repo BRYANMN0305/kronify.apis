@@ -1,6 +1,6 @@
 package co.com.kronifyapis.controller
 
-import co.com.kronifyapis.config.auth.AuthenticatedUser
+import co.com.kronifyapis.config.AuthenticatedUser
 import co.com.kronifyapis.dto.user.UserChangePasswordRequest
 import co.com.kronifyapis.dto.user.UserChangePasswordResponse
 import co.com.kronifyapis.dto.user.UserUpdateRequest

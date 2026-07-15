@@ -1,6 +1,6 @@
 package co.com.kronifyapis.service
 
-import co.com.kronifyapis.config.auth.AuthenticatedUser
+import co.com.kronifyapis.config.AuthenticatedUser
 import co.com.kronifyapis.dto.user.ProfileType
 import co.com.kronifyapis.model.User
 import io.jsonwebtoken.Claims
@@ -14,8 +14,8 @@ import javax.crypto.SecretKey
 
 @Service
 class JwtService(
-    @param:Value("\${JWT_SECRET}") private val secret: String,
-    @param:Value("\${JWT_EXPIRATION_MINUTES}") val expirationMinutes: Long
+    @param:Value("\${app.jwt.secret}") private val secret: String,
+    @param:Value("\${app.jwt.expiration-minutes}") val expirationMinutes: Long
 ) {
 
     private val signingKey: SecretKey by lazy {
