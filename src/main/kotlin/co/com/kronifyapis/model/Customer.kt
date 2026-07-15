@@ -15,35 +15,33 @@ import java.util.UUID
 
 @Entity
 @Table(name = "customers")
-class Customer {
-
+data class Customer(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "customer_id")
-    var customerId: UUID? = null
+    var customerId: UUID? = null,
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", unique = true)
-    var user: User? = null
+    var user: User? = null,
 
     @Column(name = "name", nullable = false)
-    var name: String = ""
+    var name: String = "",
 
     @Column(name = "phone_number")
-    var phoneNumber: String? = null
+    var phoneNumber: String? = null,
 
     @Column(name = "email")
-    var email: String? = null
+    var email: String? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    var createdAt: LocalDateTime = LocalDateTime.now()
+    var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-
+) {
     @PreUpdate
     fun onUpdate() {
         updatedAt = LocalDateTime.now()
     }
 }
-

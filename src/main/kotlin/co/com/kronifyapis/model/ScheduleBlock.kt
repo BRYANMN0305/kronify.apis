@@ -14,27 +14,25 @@ import java.util.UUID
 
 @Entity
 @Table(name = "schedule_blocks")
-class ScheduleBlock {
-
+data class ScheduleBlock(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "schedule_block_id")
-    var scheduleBlockId: UUID? = null
+    var scheduleBlockId: UUID? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
-    var employee: Employee? = null
+    var employee: Employee? = null,
 
     @Column(name = "start_at", nullable = false)
-    var startAt: LocalDateTime = LocalDateTime.now()
+    var startAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "end_at", nullable = false)
-    var endAt: LocalDateTime = LocalDateTime.now()
+    var endAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "reason")
-    var reason: String? = null
+    var reason: String? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
-}
-
+)

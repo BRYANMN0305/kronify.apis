@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; ">
+<div style="max-width: 480px; margin: auto; background: #fff; border-radius: 8px; padding: 32px;">
+    <h2 style="color: #2d2d2d; text-align: center">Te invitaron a unirte a Kronify</h2>
+    <p style="text-align: center">Fuiste invitado a formar parte de <strong th:text="${businessName}"></strong> como
+        empleado.</p>
+    <p style="text-align: center; margin: 32px 0;">
+        <a th:href="${link}"
+           style="background-color: #4f46e5; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+            Aceptar invitacion
+        </a>
+    </p>
+    <p style="color: #888; font-size: 13px; text-align: center">Este enlace expira en 7 dias. Si no esperabas este
+        correo, puedes
+        ignorarlo.</p>
+</div>
+</body>
+</html>

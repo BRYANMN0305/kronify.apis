@@ -21,27 +21,25 @@ import java.util.UUID
         UniqueConstraint(columnNames = ["user_id", "provider"])
     ]
 )
-
-class OauthAccount {
-
+data class OauthAccount(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "oauth_id")
-    var oauthId: UUID? = null
+    var oauthId: UUID? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    var user: User? = null
+    var user: User? = null,
 
     @Column(name = "provider", nullable = false)
-    var provider: String = ""
+    var provider: String = "",
 
     @Column(name = "provider_user_id", nullable = false)
-    var providerUserId: String = ""
+    var providerUserId: String = "",
 
     @Column(name = "provider_email")
-    var providerEmail: String? = null
+    var providerEmail: String? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
-}
+)

@@ -14,24 +14,22 @@ import java.util.UUID
 
 @Entity
 @Table(name = "weekly_schedules")
-class WeeklySchedule {
-
+data class WeeklySchedule(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "weekly_schedule_id")
-    var weeklyScheduleId: UUID? = null
+    var weeklyScheduleId: UUID? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
-    var employee: Employee? = null
+    var employee: Employee? = null,
 
     @Column(name = "day_of_week", nullable = false)
-    var dayOfWeek: Int = 0
+    var dayOfWeek: Int = 0,
 
     @Column(name = "start_time", nullable = false)
-    var startTime: LocalTime = LocalTime.MIN
+    var startTime: LocalTime = LocalTime.MIN,
 
     @Column(name = "end_time", nullable = false)
     var endTime: LocalTime = LocalTime.MIN
-}
-
+)

@@ -15,56 +15,54 @@ import java.util.UUID
 
 @Entity
 @Table(name = "business")
-class Business {
-
+data class Business(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "business_id")
-    var businessId: UUID? = null
+    var businessId: UUID? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_user_id", nullable = false)
-    var owner: User? = null
+    var owner: User? = null,
 
     @Column(name = "slug", nullable = false, unique = true)
-    var slug: String = ""
+    var slug: String = "",
 
     @Column(name = "name", nullable = false)
-    var name: String = ""
+    var name: String = "",
 
     @Column(name = "category")
-    var category: String? = null
+    var category: String? = null,
 
     @Column(name = "description")
-    var description: String? = null
+    var description: String? = null,
 
     @Column(name = "address")
-    var address: String? = null
+    var address: String? = null,
 
     @Column(name = "logo_url")
-    var logoUrl: String? = null
+    var logoUrl: String? = null,
 
     @Column(name = "email")
-    var email: String? = null
+    var email: String? = null,
 
     @Column(name = "phone_number")
-    var phoneNumber: String? = null
+    var phoneNumber: String? = null,
 
     @Column(name = "whatsapp")
-    var whatsapp: String? = null
+    var whatsapp: String? = null,
 
     @Column(name = "active", nullable = false)
-    var active: Boolean = true
+    var active: Boolean = true,
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    var createdAt: LocalDateTime = LocalDateTime.now()
+    var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-
+) {
     @PreUpdate
     fun onUpdate() {
         updatedAt = LocalDateTime.now()
     }
 }
-
