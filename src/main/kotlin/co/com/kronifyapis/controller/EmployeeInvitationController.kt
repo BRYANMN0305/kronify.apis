@@ -1,7 +1,7 @@
 package co.com.kronifyapis.controller
 
 import co.com.kronifyapis.config.auth.AuthenticatedUser
-import co.com.kronifyapis.dto.employeeInvitation.CreateInvitationRequest
+import co.com.kronifyapis.dto.employeeInvitation.InvitationRequest
 import co.com.kronifyapis.dto.employeeInvitation.InvitationResponse
 import co.com.kronifyapis.service.EmployeeInvitationService
 import jakarta.validation.Valid
@@ -21,7 +21,7 @@ class EmployeeInvitationController(
     fun createInvitation(
         @AuthenticationPrincipal user: AuthenticatedUser,
         @PathVariable businessId: UUID,
-        @Valid @RequestBody request: CreateInvitationRequest
+        @Valid @RequestBody request: InvitationRequest
     ): ResponseEntity<InvitationResponse> {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(invitationService.createInvitation(user.userId, businessId, request.email))

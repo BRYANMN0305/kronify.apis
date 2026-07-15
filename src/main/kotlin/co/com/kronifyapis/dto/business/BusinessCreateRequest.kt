@@ -9,7 +9,7 @@ data class BusinessCreateRequest(
     val name: String,
 
     @field:NotBlank
-    @field:Pattern(regexp = "^[a-z0-9]+(-[a-z0-9]+)*$",)
+    @field:Pattern(regexp = "^[a-z0-9]+(-[a-z0-9]+)*$", message = "El slug debe ser alfanumérico y separado por guiones")
     val slug: String,
 
     @field:NotBlank (message = "La categoría es obligatoria")
