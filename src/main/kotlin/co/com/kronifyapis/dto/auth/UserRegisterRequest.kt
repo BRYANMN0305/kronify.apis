@@ -6,21 +6,21 @@ import jakarta.validation.constraints.Size
 
 data class UserRegisterRequest(
 
-    @field:NotBlank
+    @field:NotBlank (message = "El nombre es obligatorio")
     val name: String,
 
-    @field:NotBlank
+    @field:NotBlank (message = "El apellido es obligatorio")
     val lastName: String,
 
-    @field:NotBlank
+    @field:NotBlank (message = "El número de teléfono es obligatorio")
     val phoneNumber: String,
 
     @field:Email
-    @field:NotBlank
+    @field:NotBlank (message = "Correo no puede estar vacío")
     val email: String,
 
-    @field:NotBlank
-    @field:Size(min = 8)
+    @field:NotBlank (message = "Contraseña no puede estar vacía")
+    @field:Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres")
     val passwordHash: String,
 
     val profileType: String,

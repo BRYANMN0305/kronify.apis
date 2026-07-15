@@ -1,8 +1,11 @@
 package co.com.kronifyapis.service
 
+import co.com.kronifyapis.config.auth.AuthenticatedUser
+import co.com.kronifyapis.dto.user.ProfileType
 import co.com.kronifyapis.model.User
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
+import java.util.UUID
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -39,6 +42,23 @@ class JwtService(
 
     fun extractEmail(token: String): String? {
         return extractAllClaims(token)?.get("email", String::class.java)
+    }
+
+    fun extractAuthenticatedUser(token: String): AuthenticatedUser? {
+        val claims = extractAllClaims(token) ?: return null
+        val userId = claims.subject ?: return null
+        val email = claims.get("email", String::class.java) ?: return null
+        val profileTypeValue = claims.get("profileType", String::class.java) ?: return null
+
+        return try {
+            AuthenticatedUser(
+                userId = UUID.fromString(userId),
+                email = email,
+                profileType = ProfileType.valueOf(profileTypeValue)
+            )
+        } catch (_: IllegalArgumentException) {
+            null
+        }
     }
 
     fun isTokenValid(token: String): Boolean {

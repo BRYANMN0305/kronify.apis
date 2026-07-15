@@ -5,14 +5,14 @@ import co.com.kronifyapis.dto.auth.TokenResponse
 import co.com.kronifyapis.dto.user.ProfileType
 import co.com.kronifyapis.dto.auth.UserRegisterRequest
 import co.com.kronifyapis.dto.user.UserResponse
+import co.com.kronifyapis.exception.BadRequestException
+import co.com.kronifyapis.exception.ConflictException
 import co.com.kronifyapis.exception.InvalidCredentialsException
-import co.com.kronifyapis.exception.TypeError
+import co.com.kronifyapis.exception.TypeErrorException
 import co.com.kronifyapis.model.User
 import co.com.kronifyapis.repository.UserRepository
-import org.springframework.http.HttpStatus
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
-import org.springframework.web.server.ResponseStatusException
 
 @Service
 class AuthService(
@@ -24,35 +24,29 @@ class AuthService(
         val email = request.email.trim().lowercase()
 
         if (userRepository.existsByEmail(email)) {
-            throw TypeError("Email already exists")
+            throw ConflictException("El email ya se encuentra registrado")
         }
 
-        if (request.name.matches(Regex("[^a-zA-Z ]"))) {
-            throw TypeError("Name must contain only letters")
+        if (!request.name.matches(Regex("^[a-zA-Z ]+$"))) {
+            throw TypeErrorException("El nombre solo puede contener letras")
         }
 
-        if (request.lastName.matches(Regex("[^a-zA-Z ]"))) {
-            throw TypeError("Last Name must contain only letters")
+        if (!request.lastName.matches(Regex("^[a-zA-Z ]+$"))) {
+            throw TypeErrorException("El apellido solo puede contener letras")
         }
 
         if (request.passwordHash.length < 8) {
-            throw ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Password must be at least 8 characters long"
-            )
+            throw BadRequestException("La contraseña debe tener al menos 8 caracteres")
         }
 
         if (request.profileType != "CLIENT" && request.profileType != "BUSINESS") {
-            throw ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Profile type must be either 'CLIENT' or 'BUSINESS'"
-            )
+            throw BadRequestException("El tipo de perfil debe ser 'CLIENT' o 'BUSINESS'")
         }
 
         val user = User(
             name = request.name,
             lastName = request.lastName,
-            phoneNumber = request.phoneNumber,
+            phoneNumber = request.phoneNumber.trim(),
             email = email,
             passwordHash = requireNotNull(passwordEncoder.encode(request.passwordHash)),
             profileType = ProfileType.valueOf(request.profileType),
@@ -78,10 +72,10 @@ class AuthService(
     fun login(request: LoginRequest): TokenResponse {
         val email = request.email.trim().lowercase()
         val user = userRepository.findByEmail(email)
-            ?: throw InvalidCredentialsException("Invalid credentials")
+            ?: throw InvalidCredentialsException("Correo o contraseña incorrectas")
 
         if (!user.active || !passwordEncoder.matches(request.password, user.passwordHash)) {
-            throw InvalidCredentialsException("Invalid credentials")
+            throw InvalidCredentialsException("Correo o contraseña incorrectas")
         }
 
         val token = jwtService.generateToken(user)
