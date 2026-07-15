@@ -15,7 +15,7 @@ import java.util.UUID
 
 @Entity
 @Table(name = "users")
-class User(
+data class User(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "user_id")
@@ -52,17 +52,8 @@ class User(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
 ) {
-
     @PreUpdate
     fun onUpdate() {
         updatedAt = LocalDateTime.now()
     }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is User) return false
-        return userId != null && userId == other.userId
-    }
-
-    override fun hashCode(): Int = javaClass.hashCode()
 }
