@@ -58,7 +58,7 @@ class BusinessService(
 
         val savedBusiness = businessRepository.save(business)
 
-        if (!employeeRepository.existsByUser(ownerUser)) {
+        if (request.ownerWorksAsEmployee && !employeeRepository.existsByUserAndBusiness(ownerUser, savedBusiness)) {
             employeeRepository.save(
                 Employee().apply {
                     user = ownerUser
