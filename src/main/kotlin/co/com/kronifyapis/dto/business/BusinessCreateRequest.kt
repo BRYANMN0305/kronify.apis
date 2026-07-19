@@ -29,5 +29,7 @@ data class BusinessCreateRequest(
     val phoneNumber: String? = null,
 
     @field:NotBlank (message = "El número de WhatsApp es obligatorio")
-    val whatsApp: String? = null
+    val whatsApp: String? = null,
+
+    val ownerWorksAsEmployee: Boolean = true
 )

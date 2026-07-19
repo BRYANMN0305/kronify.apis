@@ -8,5 +8,12 @@ import java.util.UUID
 
 interface EmployeeRepository : JpaRepository<Employee, UUID> {
     fun existsByUser(user: User): Boolean
+
     fun existsByUserAndBusiness(user: User, business: Business): Boolean
+
+    fun findAllByBusiness_BusinessId(businessId: UUID): List<Employee>
+
+    fun findByEmployeeIdAndBusiness_BusinessId(employeeId: UUID, businessId: UUID): Employee?
+
+    fun findByUserAndBusiness(user: User, business: Business): Employee?
 }
