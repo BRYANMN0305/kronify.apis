@@ -4,7 +4,11 @@ import co.com.kronifyapis.dto.auth.AuthenticatedUser
 import co.com.kronifyapis.dto.employee.EmployeeResponse
 import co.com.kronifyapis.dto.employee.EmployeeSchedulePermissionRequest
 import co.com.kronifyapis.dto.employee.EmployeeServiceUpdateRequest
+import co.com.kronifyapis.dto.employee.ScheduleBlockRequest
+import co.com.kronifyapis.dto.employee.ScheduleBlockResponse
 import co.com.kronifyapis.dto.employee.OwnerEmployeeToggleRequest
+import co.com.kronifyapis.dto.employee.WeeklyScheduleRequest
+import co.com.kronifyapis.dto.employee.WeeklyScheduleResponse
 import co.com.kronifyapis.dto.services.ServiceResponse
 import co.com.kronifyapis.service.EmployeeService
 import jakarta.validation.Valid
@@ -84,6 +88,66 @@ class EmployeeController(
         @PathVariable serviceId: UUID
     ): ResponseEntity<Void> {
         employeeService.removeServiceFromEmployee(user.userId, businessId, employeeId, serviceId)
+        return ResponseEntity.noContent().build()
+    }
+
+    @GetMapping("/{employeeId}/weekly-schedules")
+    fun listWeeklySchedules(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable businessId: UUID,
+        @PathVariable employeeId: UUID
+    ): ResponseEntity<List<WeeklyScheduleResponse>> {
+        return ResponseEntity.ok(employeeService.listWeeklySchedules(user.userId, businessId, employeeId))
+    }
+
+    @PostMapping("/{employeeId}/weekly-schedules")
+    fun upsertWeeklySchedule(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable businessId: UUID,
+        @PathVariable employeeId: UUID,
+        @Valid @RequestBody request: WeeklyScheduleRequest
+    ): ResponseEntity<WeeklyScheduleResponse> {
+        return ResponseEntity.ok(employeeService.upsertWeeklySchedule(user.userId, businessId, employeeId, request))
+    }
+
+    @DeleteMapping("/{employeeId}/weekly-schedules/{weeklyScheduleId}")
+    fun deleteWeeklySchedule(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable businessId: UUID,
+        @PathVariable employeeId: UUID,
+        @PathVariable weeklyScheduleId: UUID
+    ): ResponseEntity<Void> {
+        employeeService.deleteWeeklySchedule(user.userId, businessId, employeeId, weeklyScheduleId)
+        return ResponseEntity.noContent().build()
+    }
+
+    @GetMapping("/{employeeId}/schedule-blocks")
+    fun listScheduleBlocks(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable businessId: UUID,
+        @PathVariable employeeId: UUID
+    ): ResponseEntity<List<ScheduleBlockResponse>> {
+        return ResponseEntity.ok(employeeService.listScheduleBlocks(user.userId, businessId, employeeId))
+    }
+
+    @PostMapping("/{employeeId}/schedule-blocks")
+    fun createScheduleBlock(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable businessId: UUID,
+        @PathVariable employeeId: UUID,
+        @Valid @RequestBody request: ScheduleBlockRequest
+    ): ResponseEntity<ScheduleBlockResponse> {
+        return ResponseEntity.ok(employeeService.createScheduleBlock(user.userId, businessId, employeeId, request))
+    }
+
+    @DeleteMapping("/{employeeId}/schedule-blocks/{scheduleBlockId}")
+    fun deleteScheduleBlock(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable businessId: UUID,
+        @PathVariable employeeId: UUID,
+        @PathVariable scheduleBlockId: UUID
+    ): ResponseEntity<Void> {
+        employeeService.deleteScheduleBlock(user.userId, businessId, employeeId, scheduleBlockId)
         return ResponseEntity.noContent().build()
     }
 }

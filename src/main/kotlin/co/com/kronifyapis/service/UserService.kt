@@ -33,7 +33,6 @@ class UserService(
 
     private fun User.toResponse(): UserUpdateResponse {
         return UserUpdateResponse(
-            userId = requireNotNull(userId),
             name = name,
             lastName = lastName,
             phoneNumber = phoneNumber,
@@ -50,10 +49,9 @@ class UserService(
             throw BadRequestException("Contraseña actual incorrecta")
         }
 
-        user.passwordHash = passwordEncoder.encode(request.newPassword).toString()
+        user.passwordHash = requireNotNull(passwordEncoder.encode(request.newPassword))
 
         return UserChangePasswordResponse(
-            userId = requireNotNull(user.userId),
             updatedAt = user.updatedAt,
             message = "Contraseña actualizada correctamente"
         )

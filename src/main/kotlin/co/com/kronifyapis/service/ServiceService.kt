@@ -22,7 +22,7 @@ class ServiceService(
     fun createService(ownerId: UUID, businessId: UUID, request: ServiceRequest): ServiceResponse {
         val business = findOwnedBusiness(ownerId, businessId)
 
-        val existingService = serviceRepository.findByBusinessIdAndName(businessId, request.name)
+        val existingService = serviceRepository.findByBusiness_BusinessIdAndName(businessId, request.name)
         if (existingService != null) {
             throw BadRequestException("El servicio ya existe")
         }
@@ -60,7 +60,7 @@ class ServiceService(
         val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, businessId)
             ?: throw ResourceNotFoundException("Servicio no encontrado")
 
-        val existingService = serviceRepository.findByBusinessIdAndName(businessId, request.name)
+        val existingService = serviceRepository.findByBusiness_BusinessIdAndName(businessId, request.name)
         if (existingService != null && existingService.serviceId != serviceId) {
             throw BadRequestException("El servicio ya existe")
         }

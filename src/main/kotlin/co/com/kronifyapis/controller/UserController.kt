@@ -1,14 +1,17 @@
 package co.com.kronifyapis.controller
 
 import co.com.kronifyapis.dto.auth.AuthenticatedUser
+import co.com.kronifyapis.dto.auth.LinkedAuthMethodResponse
 import co.com.kronifyapis.dto.user.UserChangePasswordRequest
 import co.com.kronifyapis.dto.user.UserChangePasswordResponse
 import co.com.kronifyapis.dto.user.UserUpdateRequest
 import co.com.kronifyapis.dto.user.UserUpdateResponse
+import co.com.kronifyapis.service.AuthService
 import co.com.kronifyapis.service.UserService
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -16,7 +19,10 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/user")
-class UserController(private val userService: UserService) {
+class UserController(
+    private val userService: UserService,
+    private val authService: AuthService
+) {
 
     @PatchMapping("/update")
     fun updateUser(
@@ -34,6 +40,13 @@ class UserController(private val userService: UserService) {
     ): ResponseEntity<UserChangePasswordResponse> {
         val changedPassword = userService.changePassword(user.userId, request)
         return ResponseEntity.ok(changedPassword)
+    }
+
+    @GetMapping("/auth-methods")
+    fun linkedAuthMethods(
+        @AuthenticationPrincipal user: AuthenticatedUser
+    ): ResponseEntity<List<LinkedAuthMethodResponse>> {
+        return ResponseEntity.ok(authService.listLinkedAuthMethods(user.userId))
     }
 
 }

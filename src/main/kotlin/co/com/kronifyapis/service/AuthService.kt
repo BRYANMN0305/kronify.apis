@@ -1,29 +1,33 @@
 package co.com.kronifyapis.service
 
 import co.com.kronifyapis.dto.auth.LoginRequest
+import co.com.kronifyapis.dto.auth.LinkedAuthMethodResponse
 import co.com.kronifyapis.dto.auth.TokenResponse
+import co.com.kronifyapis.dto.auth.UserRegisterRequest
 import co.com.kronifyapis.dto.employeeInvitation.StatusType
 import co.com.kronifyapis.dto.user.ProfileType
-import co.com.kronifyapis.dto.auth.UserRegisterRequest
 import co.com.kronifyapis.dto.user.UserResponse
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ConflictException
 import co.com.kronifyapis.exception.InvalidCredentialsException
-import co.com.kronifyapis.exception.TypeErrorException
 import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.model.User
 import co.com.kronifyapis.repository.EmployeeInvitationRepository
 import co.com.kronifyapis.repository.EmployeeRepository
+import co.com.kronifyapis.repository.OauthAccountRepository
 import co.com.kronifyapis.repository.UserRepository
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
+
 
 @Service
 class AuthService(
     private val userRepository: UserRepository,
     private val employeeInvitationRepository: EmployeeInvitationRepository,
     private val employeeRepository: EmployeeRepository,
+    private val oauthAccountRepository: OauthAccountRepository,
     private val passwordEncoder: PasswordEncoder,
     private val jwtService: JwtService
 ) {
@@ -35,20 +39,8 @@ class AuthService(
             throw ConflictException("El email ya se encuentra registrado")
         }
 
-        if (!request.name.matches(Regex("^[a-zA-Z ]+$"))) {
-            throw TypeErrorException("El nombre solo puede contener letras")
-        }
-
-        if (!request.lastName.matches(Regex("^[a-zA-Z ]+$"))) {
-            throw TypeErrorException("El apellido solo puede contener letras")
-        }
-
         if (request.passwordHash.length < 8) {
             throw BadRequestException("La contraseña debe tener al menos 8 caracteres")
-        }
-
-        if (request.profileType != "CLIENT" && request.profileType != "BUSINESS") {
-            throw BadRequestException("El tipo de perfil debe ser 'CLIENT' o 'BUSINESS'")
         }
 
         val user = User(
@@ -57,7 +49,7 @@ class AuthService(
             phoneNumber = request.phoneNumber.trim(),
             email = email,
             passwordHash = requireNotNull(passwordEncoder.encode(request.passwordHash)),
-            profileType = ProfileType.valueOf(request.profileType),
+            profileType = request.profileType,
         )
         val savedUser = userRepository.save(user)
         linkInvitationIfNeeded(savedUser)
@@ -91,6 +83,39 @@ class AuthService(
         return user.toTokenResponse(token, jwtService.getExpirationSeconds())
     }
 
+    @Transactional(readOnly = true)
+    fun listLinkedAuthMethods(userId: java.util.UUID): List<LinkedAuthMethodResponse> {
+        val user = userRepository.findByUserId(userId)
+            ?: throw InvalidCredentialsException("Usuario no encontrado")
+
+        val linkedOauthAccounts = oauthAccountRepository.findAllByUser_UserId(user.userId!!)
+        val passwordLinked = user.passwordHash.isNotBlank()
+
+        return buildList {
+            if (passwordLinked) {
+                add(
+                    LinkedAuthMethodResponse(
+                        type = "PASSWORD",
+                        provider = null,
+                        email = user.email,
+                        linkedAt = user.createdAt
+                    )
+                )
+            }
+
+            linkedOauthAccounts.forEach { account ->
+                add(
+                    LinkedAuthMethodResponse(
+                        type = "OAUTH",
+                        provider = account.provider,
+                        email = account.providerEmail ?: user.email,
+                        linkedAt = account.createdAt
+                    )
+                )
+            }
+        }
+    }
+
     private fun User.toTokenResponse(token: String, expiresIn: Long): TokenResponse {
         return TokenResponse(
             accessToken = token,
@@ -101,7 +126,9 @@ class AuthService(
     private fun linkInvitationIfNeeded(user: User) {
         val invitation = employeeInvitationRepository.findFirstByEmailAndStatus(user.email, StatusType.PENDING)
             ?: return
-        if (user.profileType != ProfileType.BUSINESS) return
+        if (user.profileType != ProfileType.BUSINESS) {
+            throw ConflictException("La invitación solo puede aceptarse con una cuenta BUSINESS")
+        }
         if (employeeRepository.existsByUserAndBusiness(user, invitation.business!!)) return
 
         employeeRepository.save(
@@ -116,7 +143,7 @@ class AuthService(
 
         invitation.status = StatusType.ACCEPTED
         invitation.acceptedBy = user
-        invitation.acceptedAt = java.time.LocalDateTime.now()
+        invitation.acceptedAt = LocalDateTime.now()
         employeeInvitationRepository.save(invitation)
     }
 }

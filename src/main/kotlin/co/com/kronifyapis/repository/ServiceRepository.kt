@@ -6,7 +6,7 @@ import java.util.UUID
 
 interface ServiceRepository : JpaRepository<Service, UUID> {
 
-    fun findByBusinessIdAndName(businessId: UUID, name: String): Service?
+    fun findByBusiness_BusinessIdAndName(businessId: UUID, name: String): Service?
 
     fun findAllByBusinessBusinessId(businessId: UUID): List<Service>
 
