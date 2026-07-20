@@ -13,6 +13,5 @@ data class UserUpdateRequest(
     @field:Pattern(regexp = "^[a-zA-Z ]+$", message = "El apellido solo puede contener letras")
     val lastName: String? = null,
 
-    @field:NotBlank (message = "El numero no puede estar vacío")
     val phoneNumber: String? = null,
 )

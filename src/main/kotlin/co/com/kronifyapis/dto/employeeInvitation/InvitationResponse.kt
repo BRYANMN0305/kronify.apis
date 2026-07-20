@@ -1,11 +1,10 @@
 package co.com.kronifyapis.dto.employeeInvitation
 
 import java.time.LocalDateTime
-import java.util.UUID
 
 data class InvitationResponse(
-    val invitationId: UUID,
-    val businessId: UUID,
+    val invitationId: Long,
+    val businessId: Long,
     val email: String,
     val status: StatusType,
     val expiresAt: LocalDateTime,

@@ -2,6 +2,8 @@ package co.com.kronifyapis.service
 
 import co.com.kronifyapis.dto.business.BusinessCreateRequest
 import co.com.kronifyapis.dto.business.BusinessCreateResponse
+import co.com.kronifyapis.dto.business.BusinessSettingsResponse
+import co.com.kronifyapis.dto.business.BusinessUpdateRequest
 import co.com.kronifyapis.dto.business.BusinessUpdateResponse
 import co.com.kronifyapis.dto.user.ProfileType
 import co.com.kronifyapis.exception.ConflictException
@@ -15,17 +17,18 @@ import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.UUID
+
 
 @Service
 class BusinessService(
     private val businessRepository: BusinessRepository,
     private val employeeRepository: EmployeeRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val planService: PlanService
 ) {
 
     @Transactional
-    fun createBusiness(ownerId: UUID, request: BusinessCreateRequest): BusinessCreateResponse {
+    fun createBusiness(ownerId: Long, request: BusinessCreateRequest): BusinessCreateResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
             ?: throw InvalidCredentialsException("Dueño no encontrado")
 
@@ -58,7 +61,9 @@ class BusinessService(
 
         val savedBusiness = businessRepository.save(business)
 
-        if (!employeeRepository.existsByUser(ownerUser)) {
+        planService.assignFreePlanOnCreate(savedBusiness.businessId!!)
+
+        if (request.ownerWorksAsEmployee && !employeeRepository.existsByUserAndBusiness(ownerUser, savedBusiness)) {
             employeeRepository.save(
                 Employee().apply {
                     user = ownerUser
@@ -75,29 +80,35 @@ class BusinessService(
 
     private fun Business.toCreateResponse(): BusinessCreateResponse {
         return BusinessCreateResponse(
-            businessId = requireNotNull(businessId),
-            name = name,
-            slug = slug,
-            category = category,
             createdAt = createdAt
         )
     }
 
-    @Transactional
-    fun updateBusiness(ownerId: UUID, request: BusinessCreateRequest): BusinessUpdateResponse {
+    @Transactional(readOnly = true)
+    fun getBusinessSettings(ownerId: Long): BusinessSettingsResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
             ?: throw InvalidCredentialsException("Usuario no encontrado")
 
         val business = businessRepository.findByOwner(ownerUser)
             ?: throw ResourceNotFoundException("Negocio no encontrado")
 
-        request.name?.let { business.name = it }
-        request.slug?.let { business.slug = it }
-        request.category?.let { business.category = it }
-        request.description?.let { business.description = it }
-        request.address?.let { business.address = it }
-        request.logoUrl?.let { business.logoUrl = it }
-        request.email?.let { business.email = it }
+        return business.toSettingsResponse()
+    }
+
+    @Transactional
+    fun updateBusiness(ownerId: Long, request: BusinessUpdateRequest): BusinessUpdateResponse {
+        val ownerUser = userRepository.findByUserId(ownerId)
+            ?: throw InvalidCredentialsException("Usuario no encontrado")
+
+        val business = businessRepository.findByOwner(ownerUser)
+            ?: throw ResourceNotFoundException("Negocio no encontrado")
+
+        request.name?.let { business.name = it.trim() }
+        request.category?.let { business.category = it.trim() }
+        request.description?.let { business.description = it.trim() }
+        request.address?.let { business.address = it.trim() }
+        request.logoUrl?.let { business.logoUrl = it.trim() }
+        request.email?.let { business.email = it.trim().lowercase() }
         request.phoneNumber?.let { business.phoneNumber = it.trim() }
         request.whatsApp?.let { business.whatsapp = it.trim() }
 
@@ -106,8 +117,22 @@ class BusinessService(
 
     private fun Business.toUpdateResponse(): BusinessUpdateResponse {
         return BusinessUpdateResponse(
-            businessId = requireNotNull(businessId),
-            message = "Negocio actualizado exitosamente",
+            updatedAt = updatedAt
+        )
+    }
+
+    private fun Business.toSettingsResponse(): BusinessSettingsResponse {
+        return BusinessSettingsResponse(
+            name = name,
+            category = category,
+            description = description,
+            address = address,
+            logoUrl = logoUrl,
+            email = email,
+            phoneNumber = phoneNumber,
+            whatsApp = whatsapp,
+            active = active,
+            createdAt = createdAt,
             updatedAt = updatedAt
         )
     }
