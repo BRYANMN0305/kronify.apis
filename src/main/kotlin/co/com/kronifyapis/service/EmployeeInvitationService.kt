@@ -18,23 +18,26 @@ class EmployeeInvitationService(
     private val invitationRepository: EmployeeInvitationRepository,
     private val businessRepository: BusinessRepository,
     private val userRepository: UserRepository,
-    private val emailService: EmailService
+    private val emailService: EmailService,
+    private val planService: PlanService
 ) {
     companion object {
         const val INVITATION_TTL_DAYS = 7L
     }
 
     @Transactional
-    fun createInvitation(userId: UUID, businessId: UUID, email: String): InvitationResponse {
-        ensureUserCanManageBusiness(userId, businessId)
-        val business =
-            businessRepository.findById(businessId).orElseThrow { ResourceNotFoundException("Negocio no encontrado") }
+    fun createInvitation(userId: Long, email: String): InvitationResponse {
+        val business = ensureUserCanManageBusiness(userId)
+        val businessId = business.businessId!!
+
+        planService.validateEmployeeLimit(businessId)
+
         val normalizedEmail = email.trim().lowercase()
 
         val existing = invitationRepository.findByBusiness_BusinessIdAndEmailAndStatus(
             businessId, normalizedEmail, StatusType.PENDING
         )
-        require(existing == null) { ("Ya existe una invitación pendiente para este correo") }
+        require(existing == null) { "Ya existe una invitación pendiente para este correo" }
 
         val invitation = EmployeeInvitation().apply {
             this.business = business
@@ -49,9 +52,9 @@ class EmployeeInvitationService(
         return saved.toResponse()
     }
 
-    fun resendInvitation(userId: UUID, businessId: UUID, invitationId: UUID): InvitationResponse {
-        ensureUserCanManageBusiness(userId, businessId)
-        val invitation = getPendingOrThrow(businessId, invitationId)
+    fun resendInvitation(userId: Long, invitationId: Long): InvitationResponse {
+        val business = ensureUserCanManageBusiness(userId)
+        val invitation = getPendingOrThrow(business.businessId!!, invitationId)
         invitation.token = UUID.randomUUID().toString()
         invitation.expiresAt = LocalDateTime.now().plusDays(INVITATION_TTL_DAYS)
         val saved = invitationRepository.save(invitation)
@@ -61,14 +64,14 @@ class EmployeeInvitationService(
         return saved.toResponse()
     }
 
-    fun cancelInvitation(userId: UUID, businessId: UUID, invitationId: UUID): InvitationResponse {
-        ensureUserCanManageBusiness(userId, businessId)
-        val invitation = getPendingOrThrow(businessId, invitationId)
+    fun cancelInvitation(userId: Long, invitationId: Long): InvitationResponse {
+        val business = ensureUserCanManageBusiness(userId)
+        val invitation = getPendingOrThrow(business.businessId!!, invitationId)
         invitation.status = StatusType.CANCELLED
         return invitationRepository.save(invitation).toResponse()
     }
 
-    private fun getPendingOrThrow(businessId: UUID, invitationId: UUID): EmployeeInvitation {
+    private fun getPendingOrThrow(businessId: Long, invitationId: Long): EmployeeInvitation {
         val invitation = invitationRepository.findById(invitationId)
             .orElseThrow { ResourceNotFoundException("Invitación no encontrada") }
         check(invitation.business?.businessId == businessId) { "La invitación no pertenece al negocio solicitado" }
@@ -76,23 +79,16 @@ class EmployeeInvitationService(
         return invitation
     }
 
-    fun listInvitations(userId: UUID, businessId: UUID): List<InvitationResponse> {
-        ensureUserCanManageBusiness(userId, businessId)
-        return invitationRepository.findAllByBusiness_BusinessId(businessId).map { it.toResponse() }
+    fun listInvitations(userId: Long): List<InvitationResponse> {
+        val business = ensureUserCanManageBusiness(userId)
+        return invitationRepository.findAllByBusiness_BusinessId(business.businessId!!).map { it.toResponse() }
     }
 
-    private fun ensureUserCanManageBusiness(userId: UUID, businessId: UUID) {
-        val user = userRepository.findByUserId(userId)
-            ?: throw ResourceNotFoundException("Usuario no encontrado")
-        val business = businessRepository.findById(businessId)
-            .orElseThrow { ResourceNotFoundException("Negocio no encontrado") }
-        val ownedBusiness = businessRepository.findByOwner(user)
-            ?: throw ForbiddenOperationException("No tiene permiso para gestionar invitaciones de este negocio")
-
-        if (ownedBusiness.businessId != business.businessId) {
-            throw ForbiddenOperationException("No tiene permiso para gestionar invitaciones de este negocio")
-        }
-    }
+    private fun ensureUserCanManageBusiness(userId: Long) =
+        businessRepository.findByOwner(
+            userRepository.findByUserId(userId)
+                ?: throw ResourceNotFoundException("Usuario no encontrado")
+        ) ?: throw ForbiddenOperationException("No tiene permiso para gestionar invitaciones de este negocio")
 
     private fun EmployeeInvitation.toResponse(): InvitationResponse {
         return InvitationResponse(

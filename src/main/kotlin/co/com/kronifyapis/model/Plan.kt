@@ -6,15 +6,14 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
-import java.util.UUID
 
 @Entity
 @Table(name = "plans")
 data class Plan(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "plan_id")
-    var planId: UUID? = null,
+    var planId: Long? = null,
 
     @Column(name = "name", nullable = false)
     var name: String = "",
@@ -23,5 +22,8 @@ data class Plan(
     var serviceLimit: Int? = null,
 
     @Column(name = "monthly_appointment_limit")
-    var monthlyAppointmentLimit: Int? = null
+    var monthlyAppointmentLimit: Int? = null,
+
+    @Column(name = "employee_limit")
+    var employeeLimit: Int? = null
 )

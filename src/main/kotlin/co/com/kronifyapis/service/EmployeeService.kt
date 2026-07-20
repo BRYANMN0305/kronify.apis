@@ -12,6 +12,7 @@ import co.com.kronifyapis.dto.services.ServiceResponse
 import co.com.kronifyapis.exception.ForbiddenOperationException
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ResourceNotFoundException
+import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.model.EmployeeService as EmployeeServiceEntity
 import co.com.kronifyapis.model.ScheduleBlock
@@ -25,7 +26,6 @@ import co.com.kronifyapis.repository.WeeklyScheduleRepository
 import co.com.kronifyapis.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.UUID
 
 @Service
 class EmployeeService(
@@ -39,20 +39,19 @@ class EmployeeService(
 ) {
 
     @Transactional
-    fun listEmployees(userId: UUID, businessId: UUID): List<EmployeeResponse> {
-        ensureCanManageBusiness(userId, businessId)
-        return employeeRepository.findAllByBusiness_BusinessId(businessId).map { it.toEmployeeResponse() }
+    fun listEmployees(userId: Long): List<EmployeeResponse> {
+        val business = findOwnedBusiness(userId)
+        return employeeRepository.findAllByBusiness_BusinessId(business.businessId!!).map { it.toEmployeeResponse() }
     }
 
     @Transactional
     fun updateEmployeeSchedulePermission(
-        userId: UUID,
-        businessId: UUID,
-        employeeId: UUID,
+        userId: Long,
+        employeeId: Long,
         request: EmployeeSchedulePermissionRequest
     ): EmployeeResponse {
-        ensureCanManageBusiness(userId, businessId)
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
+        val business = findOwnedBusiness(userId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, business.businessId!!)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
         employee.selfManagedSchedule = request.selfManagedSchedule
@@ -60,8 +59,8 @@ class EmployeeService(
     }
 
     @Transactional
-    fun toggleOwnerEmployee(userId: UUID, businessId: UUID, request: OwnerEmployeeToggleRequest): EmployeeResponse {
-        val business = ensureCanManageBusiness(userId, businessId)
+    fun toggleOwnerEmployee(userId: Long, request: OwnerEmployeeToggleRequest): EmployeeResponse {
+        val business = findOwnedBusiness(userId)
         val ownerUser = business.owner ?: throw ResourceNotFoundException("Dueño no encontrado")
         val employee = employeeRepository.findByUserAndBusiness(ownerUser, business)
 
@@ -88,24 +87,24 @@ class EmployeeService(
     }
 
     @Transactional(readOnly = true)
-    fun listEmployeeServices(userId: UUID, businessId: UUID, employeeId: UUID): List<ServiceResponse> {
-        ensureCanManageBusiness(userId, businessId)
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
+    fun listEmployeeServices(userId: Long, employeeId: Long): List<ServiceResponse> {
+        val business = findOwnedBusiness(userId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, business.businessId!!)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
         return employeeServiceRepository.findAllByEmployee(employee)
             .mapNotNull { it.service }
-                    .map { it.toServiceResponse() }
+            .map { it.toServiceResponse() }
     }
 
     @Transactional
     fun updateEmployeeServices(
-        userId: UUID,
-        businessId: UUID,
-        employeeId: UUID,
+        userId: Long,
+        employeeId: Long,
         request: EmployeeServiceUpdateRequest
     ): List<ServiceResponse> {
-        ensureCanManageBusiness(userId, businessId)
+        val business = findOwnedBusiness(userId)
+        val businessId = business.businessId!!
         val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
@@ -144,8 +143,9 @@ class EmployeeService(
     }
 
     @Transactional
-    fun removeServiceFromEmployee(userId: UUID, businessId: UUID, employeeId: UUID, serviceId: UUID) {
-        ensureCanManageBusiness(userId, businessId)
+    fun removeServiceFromEmployee(userId: Long, employeeId: Long, serviceId: Long) {
+        val business = findOwnedBusiness(userId)
+        val businessId = business.businessId!!
         val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
         val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, businessId)
@@ -158,20 +158,19 @@ class EmployeeService(
     }
 
     @Transactional(readOnly = true)
-    fun listWeeklySchedules(userId: UUID, businessId: UUID, employeeId: UUID): List<WeeklyScheduleResponse> {
-        val employee = ensureCanManageOrSelfManage(userId, businessId, employeeId)
+    fun listWeeklySchedules(userId: Long, employeeId: Long): List<WeeklyScheduleResponse> {
+        val employee = ensureCanManageOrSelfManage(userId, employeeId)
         return weeklyScheduleRepository.findAllByEmployee(employee).map { it.toResponse() }
     }
 
     @Transactional
     fun upsertWeeklySchedule(
-        userId: UUID,
-        businessId: UUID,
-        employeeId: UUID,
+        userId: Long,
+        employeeId: Long,
         request: WeeklyScheduleRequest
     ): WeeklyScheduleResponse {
-        val employee = ensureCanManageOrSelfManage(userId, businessId, employeeId)
-        validateSelfManagedOrOwner(userId, businessId, employee)
+        val employee = ensureCanManageOrSelfManage(userId, employeeId)
+        validateSelfManagedOrOwner(userId, employee)
 
         if (request.startTime >= request.endTime) {
             throw BadRequestException("La hora de inicio debe ser menor que la de fin")
@@ -194,9 +193,9 @@ class EmployeeService(
     }
 
     @Transactional
-    fun deleteWeeklySchedule(userId: UUID, businessId: UUID, employeeId: UUID, weeklyScheduleId: UUID) {
-        val employee = ensureCanManageOrSelfManage(userId, businessId, employeeId)
-        validateSelfManagedOrOwner(userId, businessId, employee)
+    fun deleteWeeklySchedule(userId: Long, employeeId: Long, weeklyScheduleId: Long) {
+        val employee = ensureCanManageOrSelfManage(userId, employeeId)
+        validateSelfManagedOrOwner(userId, employee)
 
         val weeklySchedule = weeklyScheduleRepository.findByWeeklyScheduleIdAndEmployee(weeklyScheduleId, employee)
             ?: throw ResourceNotFoundException("Horario no encontrado")
@@ -205,20 +204,19 @@ class EmployeeService(
     }
 
     @Transactional(readOnly = true)
-    fun listScheduleBlocks(userId: UUID, businessId: UUID, employeeId: UUID): List<ScheduleBlockResponse> {
-        val employee = ensureCanManageOrSelfManage(userId, businessId, employeeId)
+    fun listScheduleBlocks(userId: Long, employeeId: Long): List<ScheduleBlockResponse> {
+        val employee = ensureCanManageOrSelfManage(userId, employeeId)
         return scheduleBlockRepository.findAllByEmployee(employee).map { it.toResponse() }
     }
 
     @Transactional
     fun createScheduleBlock(
-        userId: UUID,
-        businessId: UUID,
-        employeeId: UUID,
+        userId: Long,
+        employeeId: Long,
         request: ScheduleBlockRequest
     ): ScheduleBlockResponse {
-        val employee = ensureCanManageOrSelfManage(userId, businessId, employeeId)
-        validateSelfManagedOrOwner(userId, businessId, employee)
+        val employee = ensureCanManageOrSelfManage(userId, employeeId)
+        validateSelfManagedOrOwner(userId, employee)
 
         if (request.startAt >= request.endAt) {
             throw BadRequestException("La fecha de inicio debe ser menor que la de fin")
@@ -240,9 +238,9 @@ class EmployeeService(
     }
 
     @Transactional
-    fun deleteScheduleBlock(userId: UUID, businessId: UUID, employeeId: UUID, scheduleBlockId: UUID) {
-        val employee = ensureCanManageOrSelfManage(userId, businessId, employeeId)
-        validateSelfManagedOrOwner(userId, businessId, employee)
+    fun deleteScheduleBlock(userId: Long, employeeId: Long, scheduleBlockId: Long) {
+        val employee = ensureCanManageOrSelfManage(userId, employeeId)
+        validateSelfManagedOrOwner(userId, employee)
 
         val block = scheduleBlockRepository.findByScheduleBlockIdAndEmployee(scheduleBlockId, employee)
             ?: throw ResourceNotFoundException("Bloqueo no encontrado")
@@ -250,30 +248,20 @@ class EmployeeService(
         scheduleBlockRepository.delete(block)
     }
 
-    private fun ensureCanManageBusiness(userId: UUID, businessId: UUID): co.com.kronifyapis.model.Business {
+    private fun findOwnedBusiness(userId: Long): Business {
         val user = userRepository.findByUserId(userId)
             ?: throw ResourceNotFoundException("Usuario no encontrado")
-        val business = businessRepository.findById(businessId)
-            .orElseThrow { ResourceNotFoundException("Negocio no encontrado") }
-        val ownedBusiness = businessRepository.findByOwner(user)
+        return businessRepository.findByOwner(user)
             ?: throw ForbiddenOperationException("No tiene permiso para gestionar este negocio")
-
-        if (ownedBusiness.businessId != business.businessId) {
-            throw ForbiddenOperationException("No tiene permiso para gestionar este negocio")
-        }
-
-        return business
     }
 
-    private fun ensureCanManageOrSelfManage(userId: UUID, businessId: UUID, employeeId: UUID): Employee {
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
-            ?: throw ResourceNotFoundException("Empleado no encontrado")
+    private fun ensureCanManageOrSelfManage(userId: Long, employeeId: Long): Employee {
+        val employee = employeeRepository.findById(employeeId)
+            .orElseThrow { ResourceNotFoundException("Empleado no encontrado") }
         val user = userRepository.findByUserId(userId)
             ?: throw ResourceNotFoundException("Usuario no encontrado")
-        val business = businessRepository.findById(businessId)
-            .orElseThrow { ResourceNotFoundException("Negocio no encontrado") }
-        val ownerBusiness = businessRepository.findByOwner(user)
-        val isOwner = ownerBusiness?.businessId == business.businessId
+        val ownBusiness = businessRepository.findByOwner(user)
+        val isOwner = ownBusiness?.businessId == employee.business?.businessId
         val isSelf = employee.user?.userId == userId && employee.selfManagedSchedule
 
         if (!isOwner && !isSelf) {
@@ -282,12 +270,11 @@ class EmployeeService(
         return employee
     }
 
-    private fun validateSelfManagedOrOwner(userId: UUID, businessId: UUID, employee: Employee) {
+    private fun validateSelfManagedOrOwner(userId: Long, employee: Employee) {
         val user = userRepository.findByUserId(userId)
             ?: throw ResourceNotFoundException("Usuario no encontrado")
-        val business = businessRepository.findById(businessId)
-            .orElseThrow { ResourceNotFoundException("Negocio no encontrado") }
-        val isOwner = business.owner?.userId == userId
+        val ownBusiness = businessRepository.findByOwner(user)
+        val isOwner = ownBusiness?.businessId == employee.business?.businessId
         val isSelf = employee.user?.userId == userId && employee.selfManagedSchedule
         if (!isOwner && !isSelf) {
             throw ForbiddenOperationException("No tiene permiso para gestionar horarios o bloqueos")

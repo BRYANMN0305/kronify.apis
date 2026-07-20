@@ -3,13 +3,12 @@ package co.com.kronifyapis.repository
 import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.User
 import org.springframework.data.jpa.repository.JpaRepository
-import java.util.UUID
 
-interface BusinessRepository: JpaRepository<Business, UUID> {
+interface BusinessRepository: JpaRepository<Business, Long> {
 
     fun findByOwner(owner: User): Business?
 
-    fun findByBusinessId(businessId: UUID): Business?
+    fun findByBusinessId(businessId: Long): Business?
 
     fun findBusinessBySlug (slug: String): Business?
 

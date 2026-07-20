@@ -17,17 +17,18 @@ import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.UUID
+
 
 @Service
 class BusinessService(
     private val businessRepository: BusinessRepository,
     private val employeeRepository: EmployeeRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val planService: PlanService
 ) {
 
     @Transactional
-    fun createBusiness(ownerId: UUID, request: BusinessCreateRequest): BusinessCreateResponse {
+    fun createBusiness(ownerId: Long, request: BusinessCreateRequest): BusinessCreateResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
             ?: throw InvalidCredentialsException("Dueño no encontrado")
 
@@ -60,6 +61,8 @@ class BusinessService(
 
         val savedBusiness = businessRepository.save(business)
 
+        planService.assignFreePlanOnCreate(savedBusiness.businessId!!)
+
         if (request.ownerWorksAsEmployee && !employeeRepository.existsByUserAndBusiness(ownerUser, savedBusiness)) {
             employeeRepository.save(
                 Employee().apply {
@@ -82,7 +85,7 @@ class BusinessService(
     }
 
     @Transactional(readOnly = true)
-    fun getBusinessSettings(ownerId: UUID): BusinessSettingsResponse {
+    fun getBusinessSettings(ownerId: Long): BusinessSettingsResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
             ?: throw InvalidCredentialsException("Usuario no encontrado")
 
@@ -93,7 +96,7 @@ class BusinessService(
     }
 
     @Transactional
-    fun updateBusiness(ownerId: UUID, request: BusinessUpdateRequest): BusinessUpdateResponse {
+    fun updateBusiness(ownerId: Long, request: BusinessUpdateRequest): BusinessUpdateResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
             ?: throw InvalidCredentialsException("Usuario no encontrado")
 

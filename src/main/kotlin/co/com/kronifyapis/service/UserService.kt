@@ -13,7 +13,7 @@ import co.com.kronifyapis.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
-import java.util.UUID
+
 
 @Service
 class UserService(
@@ -21,7 +21,7 @@ class UserService(
     private val passwordEncoder: PasswordEncoder
 ) {
     @Transactional
-    fun updateUser(userId: UUID, request: UserUpdateRequest): UserUpdateResponse {
+    fun updateUser(userId: Long, request: UserUpdateRequest): UserUpdateResponse {
         val user =
             userRepository.findByUserId(userId) ?: throw ResourceNotFoundException("Usuario no encontrado")
         request.name?.let { user.name = it }
@@ -41,7 +41,7 @@ class UserService(
     }
 
     @Transactional
-    fun changePassword(userId: UUID, request: UserChangePasswordRequest): UserChangePasswordResponse {
+    fun changePassword(userId: Long, request: UserChangePasswordRequest): UserChangePasswordResponse {
         val user = userRepository.findByUserId(userId)
             ?: throw ResourceNotFoundException("Usuario no encontrado")
 

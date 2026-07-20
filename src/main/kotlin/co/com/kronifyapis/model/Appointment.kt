@@ -15,15 +15,29 @@ import jakarta.persistence.EnumType
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import java.time.LocalDateTime
-import java.util.UUID
+
+/**
+ *Representación de la base de datos que almacena las citas agendadas,
+ * esta entidad relaciona al negocio, servicio, empleado y cliente.
+ * Aquí que se definen las propiedades de la cita.
+ *
+ * Anotaciones utilizadas:
+ *
+ * @Entity para indicar que esta clase es una tabla en la base de datos.
+ * @Table para indicar el nombre de la tabla en la base de datos.
+ * @Id para indicar que esta columna es la clave primaria de la tabla.
+ * @GeneratedValue para indicar que el valor de la clave primaria se genera automáticamente.
+ * @JoinColumn para indicar la columna de la tabla que se usa para la relación con otra tabla.
+ * @PreUpdate para actualizar la fecha de modificación en la tabla ante cualquier cambio realizado.
+ */
 
 @Entity
 @Table(name = "appointments")
 data class Appointment(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "appointment_id")
-    var appointmentId: UUID? = null,
+    var appointmentId: Long? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "business_id", nullable = false)

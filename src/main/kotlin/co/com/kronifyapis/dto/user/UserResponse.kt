@@ -1,10 +1,9 @@
 package co.com.kronifyapis.dto.user
 
 import java.time.LocalDateTime
-import java.util.UUID
 
 data class UserResponse(
-    val userId: UUID,
+    val userId: Long,
     val name: String,
     val lastName: String,
     val phoneNumber: String?,

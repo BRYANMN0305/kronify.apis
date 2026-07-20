@@ -10,23 +10,28 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.util.UUID
 
 @Entity
-@Table(name = "services")
+@Table(
+    name = "services",
+    uniqueConstraints = [
+        UniqueConstraint(columnNames = ["business_id", "name"])
+    ]
+)
 data class Service(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "service_id")
-    var serviceId: UUID? = null,
+    var serviceId: Long? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "business_id", nullable = false)
     var business: Business? = null,
 
-    @Column(name = "name", nullable = false, unique = true)
+    @Column(name = "name", nullable = false)
     var name: String = "",
 
     @Column(name = "description")
