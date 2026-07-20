@@ -5,24 +5,29 @@ import co.com.kronifyapis.dto.services.ServiceResponse
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ForbiddenOperationException
 import co.com.kronifyapis.exception.ResourceNotFoundException
+import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.Service as ServiceEntity
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.ServiceRepository
+import co.com.kronifyapis.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
-import java.util.UUID
 
 @Service
 class ServiceService(
     private val serviceRepository: ServiceRepository,
     private val businessRepository: BusinessRepository,
+    private val userRepository: UserRepository,
+    private val planService: PlanService,
 ) {
 
     @Transactional
-    fun createService(ownerId: UUID, businessId: UUID, request: ServiceRequest): ServiceResponse {
-        val business = findOwnedBusiness(ownerId, businessId)
+    fun createService(userId: Long, request: ServiceRequest): ServiceResponse {
+        val business = findOwnedBusiness(userId)
 
-        val existingService = serviceRepository.findByBusiness_BusinessIdAndName(businessId, request.name)
+        planService.validateServiceLimit(business.businessId!!)
+
+        val existingService = serviceRepository.findByBusiness_BusinessIdAndName(business.businessId!!, request.name)
         if (existingService != null) {
             throw BadRequestException("El servicio ya existe")
         }
@@ -40,23 +45,24 @@ class ServiceService(
     }
 
     @Transactional
-    fun listServices(ownerId: UUID, businessId: UUID): List<ServiceResponse> {
-        findOwnedBusiness(ownerId, businessId)
-        return serviceRepository.findAllByBusinessBusinessId(businessId)
+    fun listServices(userId: Long): List<ServiceResponse> {
+        val business = findOwnedBusiness(userId)
+        return serviceRepository.findAllByBusinessBusinessId(business.businessId!!)
             .map { it.toResponse() }
     }
 
     @Transactional
-    fun getService(ownerId: UUID, businessId: UUID, serviceId: UUID): ServiceResponse {
-        findOwnedBusiness(ownerId, businessId)
-        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, businessId)
+    fun getService(userId: Long, serviceId: Long): ServiceResponse {
+        val business = findOwnedBusiness(userId)
+        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, business.businessId!!)
             ?: throw ResourceNotFoundException("Servicio no encontrado")
         return service.toResponse()
     }
 
     @Transactional
-    fun updateService(ownerId: UUID, businessId: UUID, serviceId: UUID, request: ServiceRequest): ServiceResponse {
-        findOwnedBusiness(ownerId, businessId)
+    fun updateService(userId: Long, serviceId: Long, request: ServiceRequest): ServiceResponse {
+        val business = findOwnedBusiness(userId)
+        val businessId = business.businessId!!
         val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, businessId)
             ?: throw ResourceNotFoundException("Servicio no encontrado")
 
@@ -74,21 +80,19 @@ class ServiceService(
     }
 
     @Transactional
-    fun deleteService(ownerId: UUID, businessId: UUID, serviceId: UUID) {
-        findOwnedBusiness(ownerId, businessId)
-        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, businessId)
+    fun deleteService(userId: Long, serviceId: Long) {
+        val business = findOwnedBusiness(userId)
+        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, business.businessId!!)
             ?: throw ResourceNotFoundException("Servicio no encontrado")
         serviceRepository.delete(service)
     }
 
-    private fun findOwnedBusiness(ownerId: UUID, businessId: UUID) =
-        businessRepository.findById(businessId)
-            .orElseThrow { ResourceNotFoundException("Business not found") }
-            .also { business ->
-                if (business.owner?.userId != ownerId) {
-                    throw ForbiddenOperationException("Solo el dueño puede administrar los servicios")
-                }
-            }
+    private fun findOwnedBusiness(userId: Long): Business {
+        val user = userRepository.findByUserId(userId)
+            ?: throw ResourceNotFoundException("Usuario no encontrado")
+        return businessRepository.findByOwner(user)
+            ?: throw ForbiddenOperationException("Solo el dueño puede administrar los servicios")
+    }
 
     private fun ServiceEntity.toResponse(): ServiceResponse {
         return ServiceResponse(
@@ -101,5 +105,4 @@ class ServiceService(
             createdAt = createdAt
         )
     }
-
 }

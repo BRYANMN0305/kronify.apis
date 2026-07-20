@@ -11,15 +11,14 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 import java.time.LocalDateTime
-import java.util.UUID
 
 @Entity
 @Table(name = "reviews")
 data class Review(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "review_id")
-    var reviewId: UUID? = null,
+    var reviewId: Long? = null,
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "appointment_id", nullable = false, unique = true)

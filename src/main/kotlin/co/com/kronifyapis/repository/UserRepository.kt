@@ -2,11 +2,10 @@ package co.com.kronifyapis.repository
 
 import co.com.kronifyapis.model.User
 import org.springframework.data.jpa.repository.JpaRepository
-import java.util.UUID
 
-interface UserRepository : JpaRepository<User, UUID> {
+interface UserRepository : JpaRepository<User, Long> {
 
-    fun findByUserId(userId: UUID): User?
+    fun findByUserId(userId: Long): User?
 
     fun findByEmail(email: String): User?
 

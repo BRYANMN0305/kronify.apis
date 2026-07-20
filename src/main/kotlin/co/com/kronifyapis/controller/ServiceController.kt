@@ -16,10 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import java.util.UUID
 
 @RestController
-@RequestMapping("/businesses/{businessId}/services")
+@RequestMapping("/business/services")
 class ServiceController(
     private val serviceService: ServiceService
 ) {
@@ -27,47 +26,42 @@ class ServiceController(
     @PostMapping("/")
     fun createService(
         @AuthenticationPrincipal user: AuthenticatedUser,
-        @PathVariable businessId: UUID,
         @Valid @RequestBody request: ServiceRequest
     ): ResponseEntity<ServiceResponse> {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(serviceService.createService(user.userId, businessId, request))
+            .body(serviceService.createService(user.userId, request))
     }
 
     @GetMapping("/")
     fun listServices(
-        @AuthenticationPrincipal user: AuthenticatedUser,
-        @PathVariable businessId: UUID
+        @AuthenticationPrincipal user: AuthenticatedUser
     ): ResponseEntity<List<ServiceResponse>> {
-        return ResponseEntity.ok(serviceService.listServices(user.userId, businessId))
+        return ResponseEntity.ok(serviceService.listServices(user.userId))
     }
 
     @GetMapping("/{serviceId}")
     fun getService(
         @AuthenticationPrincipal user: AuthenticatedUser,
-        @PathVariable businessId: UUID,
-        @PathVariable serviceId: UUID
+        @PathVariable serviceId: Long
     ): ResponseEntity<ServiceResponse> {
-        return ResponseEntity.ok(serviceService.getService(user.userId, businessId, serviceId))
+        return ResponseEntity.ok(serviceService.getService(user.userId, serviceId))
     }
 
     @PatchMapping("/{serviceId}")
     fun updateService(
         @AuthenticationPrincipal user: AuthenticatedUser,
-        @PathVariable businessId: UUID,
-        @PathVariable serviceId: UUID,
+        @PathVariable serviceId: Long,
         @Valid @RequestBody request: ServiceRequest
     ): ResponseEntity<ServiceResponse> {
-        return ResponseEntity.ok(serviceService.updateService(user.userId, businessId, serviceId, request))
+        return ResponseEntity.ok(serviceService.updateService(user.userId, serviceId, request))
     }
 
     @DeleteMapping("/{serviceId}")
     fun deleteService(
         @AuthenticationPrincipal user: AuthenticatedUser,
-        @PathVariable businessId: UUID,
-        @PathVariable serviceId: UUID
+        @PathVariable serviceId: Long
     ): ResponseEntity<ServiceResponse> {
-        serviceService.deleteService(user.userId, businessId, serviceId)
+        serviceService.deleteService(user.userId, serviceId)
         return ResponseEntity.noContent().build()
     }
 }

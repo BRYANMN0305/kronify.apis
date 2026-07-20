@@ -1,10 +1,9 @@
 package co.com.kronifyapis.dto.employee
 
 import java.time.LocalDateTime
-import java.util.UUID
 
 data class EmployeeResponse(
-    val employeeId: UUID,
+    val employeeId: Long,
     val name: String,
     val lastName: String,
     val email: String,

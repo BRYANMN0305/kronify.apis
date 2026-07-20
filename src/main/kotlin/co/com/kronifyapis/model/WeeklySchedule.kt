@@ -9,16 +9,21 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.LocalTime
-import java.util.UUID
 
 @Entity
-@Table(name = "weekly_schedules")
+@Table(
+    name = "weekly_schedules",
+    uniqueConstraints = [
+        UniqueConstraint(columnNames = ["employee_id", "day_of_week"])
+    ]
+)
 data class WeeklySchedule(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "weekly_schedule_id")
-    var weeklyScheduleId: UUID? = null,
+    var weeklyScheduleId: Long? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)

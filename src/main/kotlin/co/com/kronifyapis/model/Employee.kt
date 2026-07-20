@@ -12,7 +12,6 @@ import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
-import java.util.UUID
 
 @Entity
 @Table(
@@ -23,9 +22,9 @@ import java.util.UUID
 )
 data class Employee(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "employee_id")
-    var employeeId: UUID? = null,
+    var employeeId: Long? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
