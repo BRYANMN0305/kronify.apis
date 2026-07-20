@@ -1,6 +1,6 @@
 package co.com.kronifyapis.service
 
-import co.com.kronifyapis.config.AuthenticatedUser
+import co.com.kronifyapis.dto.auth.AuthenticatedUser
 import co.com.kronifyapis.dto.user.ProfileType
 import co.com.kronifyapis.model.User
 import io.jsonwebtoken.Claims

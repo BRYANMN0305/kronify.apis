@@ -26,7 +26,7 @@ data class Service(
     @JoinColumn(name = "business_id", nullable = false)
     var business: Business? = null,
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, unique = true)
     var name: String = "",
 
     @Column(name = "description")
@@ -36,7 +36,7 @@ data class Service(
     var durationMinutes: Int = 0,
 
     @Column(name = "price")
-    var price: BigDecimal? = null,
+    var price: Double? = null,
 
     @Column(name = "active", nullable = false)
     var active: Boolean = true,

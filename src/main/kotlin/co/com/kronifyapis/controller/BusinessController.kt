@@ -1,6 +1,6 @@
 package co.com.kronifyapis.controller
 
-import co.com.kronifyapis.config.AuthenticatedUser
+import co.com.kronifyapis.dto.auth.AuthenticatedUser
 import co.com.kronifyapis.dto.business.BusinessCreateRequest
 import co.com.kronifyapis.dto.business.BusinessCreateResponse
 import co.com.kronifyapis.dto.business.BusinessUpdateResponse
