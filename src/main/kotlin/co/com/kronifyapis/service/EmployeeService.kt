@@ -2,12 +2,17 @@ package co.com.kronifyapis.service
 
 import co.com.kronifyapis.dto.employee.EmployeeResponse
 import co.com.kronifyapis.dto.employee.EmployeeSchedulePermissionRequest
+import co.com.kronifyapis.dto.employee.EmployeeServiceUpdateRequest
 import co.com.kronifyapis.dto.employee.OwnerEmployeeToggleRequest
+import co.com.kronifyapis.dto.services.ServiceResponse
 import co.com.kronifyapis.exception.ForbiddenOperationException
 import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.Employee
+import co.com.kronifyapis.model.EmployeeService as EmployeeServiceEntity
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository
+import co.com.kronifyapis.repository.EmployeeServiceRepository
+import co.com.kronifyapis.repository.ServiceRepository
 import co.com.kronifyapis.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -17,7 +22,9 @@ import java.util.UUID
 class EmployeeService(
     private val employeeRepository: EmployeeRepository,
     private val businessRepository: BusinessRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val serviceRepository: ServiceRepository,
+    private val employeeServiceRepository: EmployeeServiceRepository
 ) {
 
     @Transactional(readOnly = true)
@@ -67,6 +74,76 @@ class EmployeeService(
         employee.active = false
         employee.selfManagedSchedule = false
         return employeeRepository.save(employee).toResponse()
+    }
+
+    @Transactional(readOnly = true)
+    fun listEmployeeServices(userId: UUID, businessId: UUID, employeeId: UUID): List<ServiceResponse> {
+        ensureCanManageBusiness(userId, businessId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
+            ?: throw ResourceNotFoundException("Empleado no encontrado")
+
+        return employeeServiceRepository.findAllByEmployee(employee)
+            .mapNotNull { it.service }
+            .map { it.toResponse() }
+    }
+
+    @Transactional
+    fun updateEmployeeServices(
+        userId: UUID,
+        businessId: UUID,
+        employeeId: UUID,
+        request: EmployeeServiceUpdateRequest
+    ): List<ServiceResponse> {
+        ensureCanManageBusiness(userId, businessId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
+            ?: throw ResourceNotFoundException("Empleado no encontrado")
+
+        val requestedServiceIds = request.serviceIds.distinct().toSet()
+        val currentLinks = employeeServiceRepository.findAllByEmployee(employee)
+        val currentServiceIds = currentLinks.mapNotNull { it.service?.serviceId }.toSet()
+
+        val servicesToAdd = requestedServiceIds.minus(currentServiceIds).map { serviceId ->
+            serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, businessId)
+                ?: throw ResourceNotFoundException("Servicio no encontrado")
+        }
+
+        val servicesToRemove = currentLinks.filter { link ->
+            val serviceId = link.service?.serviceId
+            serviceId == null || serviceId !in requestedServiceIds
+        }
+
+        if (servicesToRemove.isNotEmpty()) {
+            employeeServiceRepository.deleteAll(servicesToRemove)
+        }
+
+        if (servicesToAdd.isNotEmpty()) {
+            employeeServiceRepository.saveAll(
+                servicesToAdd.map { service ->
+                    EmployeeServiceEntity(
+                        employee = employee,
+                        service = service
+                    )
+                }
+            )
+        }
+
+        return employeeServiceRepository.findAllByEmployee(employee)
+            .mapNotNull { it.service }
+            .map { it.toResponse() }
+    }
+
+    @Transactional
+    fun removeServiceFromEmployee(userId: UUID, businessId: UUID, employeeId: UUID, serviceId: UUID) {
+        ensureCanManageBusiness(userId, businessId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
+            ?: throw ResourceNotFoundException("Empleado no encontrado")
+        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, businessId)
+            ?: throw ResourceNotFoundException("Servicio no encontrado")
+
+        val employeeService = employeeServiceRepository.findByEmployeeAndService(employee, service)
+            ?: throw ResourceNotFoundException("La relación entre empleado y servicio no existe")
+
+        employeeServiceRepository.delete(employeeService)
     }
 
     private fun ensureCanManageBusiness(userId: UUID, businessId: UUID): co.com.kronifyapis.model.Business {

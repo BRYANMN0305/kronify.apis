@@ -1,6 +1,6 @@
 package co.com.kronifyapis.controller
 
-import co.com.kronifyapis.config.AuthenticatedUser
+import co.com.kronifyapis.dto.auth.AuthenticatedUser
 import co.com.kronifyapis.dto.employeeInvitation.InvitationRequest
 import co.com.kronifyapis.dto.employeeInvitation.InvitationResponse
 import co.com.kronifyapis.service.EmployeeInvitationService

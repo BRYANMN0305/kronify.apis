@@ -1,13 +1,16 @@
 package co.com.kronifyapis.controller
 
-import co.com.kronifyapis.config.AuthenticatedUser
+import co.com.kronifyapis.dto.auth.AuthenticatedUser
 import co.com.kronifyapis.dto.employee.EmployeeResponse
 import co.com.kronifyapis.dto.employee.EmployeeSchedulePermissionRequest
+import co.com.kronifyapis.dto.employee.EmployeeServiceUpdateRequest
 import co.com.kronifyapis.dto.employee.OwnerEmployeeToggleRequest
+import co.com.kronifyapis.dto.services.ServiceResponse
 import co.com.kronifyapis.service.EmployeeService
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -50,5 +53,37 @@ class EmployeeController(
         @Valid @RequestBody request: OwnerEmployeeToggleRequest
     ): ResponseEntity<EmployeeResponse> {
         return ResponseEntity.ok(employeeService.toggleOwnerEmployee(user.userId, businessId, request))
+    }
+
+    @GetMapping("/{employeeId}/services")
+    fun listEmployeeServices(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable businessId: UUID,
+        @PathVariable employeeId: UUID
+    ): ResponseEntity<List<ServiceResponse>> {
+        return ResponseEntity.ok(employeeService.listEmployeeServices(user.userId, businessId, employeeId))
+    }
+
+    @PatchMapping("/{employeeId}/services")
+    fun updateEmployeeServices(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable businessId: UUID,
+        @PathVariable employeeId: UUID,
+        @Valid @RequestBody request: EmployeeServiceUpdateRequest
+    ): ResponseEntity<List<ServiceResponse>> {
+        return ResponseEntity.ok(
+            employeeService.updateEmployeeServices(user.userId, businessId, employeeId, request)
+        )
+    }
+
+    @DeleteMapping("/{employeeId}/services/{serviceId}")
+    fun removeServiceFromEmployee(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable businessId: UUID,
+        @PathVariable employeeId: UUID,
+        @PathVariable serviceId: UUID
+    ): ResponseEntity<Void> {
+        employeeService.removeServiceFromEmployee(user.userId, businessId, employeeId, serviceId)
+        return ResponseEntity.noContent().build()
     }
 }

@@ -29,7 +29,15 @@ class SecurityConfig(
                 it.requestMatchers(HttpMethod.GET, "/").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                it.requestMatchers(
+                    "/swagger-ui.html",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-resources/**",
+                    "/webjars/**"
+                ).permitAll()
                 it.anyRequest().authenticated()
+
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .httpBasic { it.disable() }
