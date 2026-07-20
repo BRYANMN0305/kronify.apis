@@ -1,10 +1,9 @@
 package co.com.kronifyapis.dto.services
 
 import java.time.LocalDateTime
-import java.util.UUID
 
 data class ServiceResponse(
-    val id: UUID,
+    val id: Long,
     val name: String,
     val description: String?,
     val price: Double?,

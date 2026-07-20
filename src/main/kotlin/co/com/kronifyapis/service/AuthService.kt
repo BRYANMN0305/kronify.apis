@@ -29,7 +29,8 @@ class AuthService(
     private val employeeRepository: EmployeeRepository,
     private val oauthAccountRepository: OauthAccountRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val jwtService: JwtService
+    private val jwtService: JwtService,
+    private val planService: PlanService
 ) {
     @Transactional
     fun register(request: UserRegisterRequest): UserResponse {
@@ -84,7 +85,7 @@ class AuthService(
     }
 
     @Transactional(readOnly = true)
-    fun listLinkedAuthMethods(userId: java.util.UUID): List<LinkedAuthMethodResponse> {
+    fun listLinkedAuthMethods(userId: Long): List<LinkedAuthMethodResponse> {
         val user = userRepository.findByUserId(userId)
             ?: throw InvalidCredentialsException("Usuario no encontrado")
 
@@ -130,6 +131,8 @@ class AuthService(
             throw ConflictException("La invitación solo puede aceptarse con una cuenta BUSINESS")
         }
         if (employeeRepository.existsByUserAndBusiness(user, invitation.business!!)) return
+
+        planService.validateEmployeeLimit(invitation.business!!.businessId!!)
 
         employeeRepository.save(
             Employee().apply {

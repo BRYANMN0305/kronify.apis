@@ -14,15 +14,14 @@ import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import co.com.kronifyapis.dto.employeeInvitation.StatusType
 import java.time.LocalDateTime
-import java.util.UUID
 
 @Entity
 @Table(name = "employee_invitations")
 data class EmployeeInvitation(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "invitation_id")
-    var invitationId: UUID? = null,
+    var invitationId: Long? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "business_id", nullable = false)

@@ -11,19 +11,30 @@ import jakarta.persistence.OneToOne
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import java.time.LocalDateTime
-import java.util.UUID
 
 @Entity
 @Table(name = "customers")
 data class Customer(
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "customer_id")
-    var customerId: UUID? = null,
+    var customerId: Long? = null,
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @JoinColumn(name = "user_id", unique = true)
     var user: User? = null,
+
+    @Column(name = "name")
+    var name: String? = null,
+
+    @Column(name = "last_name")
+    var lastName: String? = null,
+
+    @Column(name = "phone_number")
+    var phoneNumber: String? = null,
+
+    @Column(name = "email")
+    var email: String? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
