@@ -3,6 +3,7 @@ package co.com.kronifyapis.service
 import co.com.kronifyapis.dto.employee.EmployeeResponse
 import co.com.kronifyapis.dto.employee.EmployeeSchedulePermissionRequest
 import co.com.kronifyapis.dto.employee.EmployeeServiceUpdateRequest
+import co.com.kronifyapis.dto.employee.EmployeeUpdateRequest
 import co.com.kronifyapis.dto.employee.ScheduleBlockRequest
 import co.com.kronifyapis.dto.employee.ScheduleBlockResponse
 import co.com.kronifyapis.dto.employee.OwnerEmployeeToggleRequest
@@ -12,11 +13,14 @@ import co.com.kronifyapis.dto.services.ServiceResponse
 import co.com.kronifyapis.exception.ForbiddenOperationException
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ResourceNotFoundException
+import co.com.kronifyapis.model.Appointment
 import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.model.EmployeeService as EmployeeServiceEntity
 import co.com.kronifyapis.model.ScheduleBlock
 import co.com.kronifyapis.model.WeeklySchedule
+import co.com.kronifyapis.model.enums.AppointmentStatus
+import co.com.kronifyapis.repository.AppointmentRepository
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.EmployeeServiceRepository
@@ -26,6 +30,7 @@ import co.com.kronifyapis.repository.WeeklyScheduleRepository
 import co.com.kronifyapis.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 @Service
 class EmployeeService(
@@ -35,13 +40,14 @@ class EmployeeService(
     private val serviceRepository: ServiceRepository,
     private val employeeServiceRepository: EmployeeServiceRepository,
     private val weeklyScheduleRepository: WeeklyScheduleRepository,
-    private val scheduleBlockRepository: ScheduleBlockRepository
+    private val scheduleBlockRepository: ScheduleBlockRepository,
+    private val appointmentRepository: AppointmentRepository
 ) {
 
     @Transactional
     fun listEmployees(userId: Long): List<EmployeeResponse> {
         val business = findOwnedBusiness(userId)
-        return employeeRepository.findAllByBusiness_BusinessId(business.businessId!!).map { it.toEmployeeResponse() }
+        return employeeRepository.findAllByBusiness_BusinessIdAndActiveTrue(business.businessId!!).map { it.toEmployeeResponse() }
     }
 
     @Transactional
@@ -78,12 +84,98 @@ class EmployeeService(
         }
 
         if (employee == null) {
-            throw ResourceNotFoundException("El dueño no tiene un registro de empleado asociado")
+            throw BadRequestException("El dueño no tiene un registro de empleado asociado")
         }
 
+        employee.owner = false
         employee.active = false
         employee.selfManagedSchedule = false
         return employeeRepository.save(employee).toEmployeeResponse()
+    }
+
+    @Transactional
+    fun updateEmployee(
+        userId: Long,
+        employeeId: Long,
+        request: EmployeeUpdateRequest
+    ): EmployeeResponse {
+        val business = findOwnedBusiness(userId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, business.businessId!!)
+            ?: throw ResourceNotFoundException("Empleado no encontrado")
+
+        if (request.active == false && employee.active) {
+            val futureAppointments = appointmentRepository
+                .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
+                    employee.employeeId!!, LocalDateTime.now().plusYears(1), LocalDateTime.now()
+                )
+                .filter { it.status == AppointmentStatus.PENDING || it.status == AppointmentStatus.CONFIRMED }
+            if (futureAppointments.isNotEmpty()) {
+                throw BadRequestException(
+                    "No se puede desactivar el empleado porque tiene ${futureAppointments.size} cita(s) futura(s). " +
+                        "Reasigne o cancele las citas primero."
+                )
+            }
+        }
+
+        request.selfManagedSchedule?.let { employee.selfManagedSchedule = it }
+        request.active?.let { employee.active = it }
+
+        return employeeRepository.save(employee).toEmployeeResponse()
+    }
+
+    @Transactional
+    fun deactivateEmployee(userId: Long, employeeId: Long): EmployeeResponse {
+        val business = findOwnedBusiness(userId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, business.businessId!!)
+            ?: throw ResourceNotFoundException("Empleado no encontrado")
+
+        if (!employee.active) {
+            throw BadRequestException("El empleado ya está inactivo")
+        }
+
+        val futureAppointments = appointmentRepository
+            .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
+                employee.employeeId!!, LocalDateTime.now().plusYears(1), LocalDateTime.now()
+            )
+            .filter { it.status == AppointmentStatus.PENDING || it.status == AppointmentStatus.CONFIRMED }
+
+        if (futureAppointments.isNotEmpty()) {
+            throw BadRequestException(
+                "No se puede desactivar el empleado porque tiene ${futureAppointments.size} cita(s) futura(s). " +
+                    "Reasigne o cancele las citas primero."
+            )
+        }
+
+        employee.active = false
+        return employeeRepository.save(employee).toEmployeeResponse()
+    }
+
+    @Transactional
+    fun deleteEmployee(userId: Long, employeeId: Long) {
+        val business = findOwnedBusiness(userId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, business.businessId!!)
+            ?: throw ResourceNotFoundException("Empleado no encontrado")
+
+        if (employee.owner) {
+            throw BadRequestException("No se puede eliminar al dueño como empleado")
+        }
+
+        val futureAppointments = appointmentRepository
+            .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
+                employee.employeeId!!, LocalDateTime.now().plusYears(1), LocalDateTime.now()
+            )
+            .filter { it.status == AppointmentStatus.PENDING || it.status == AppointmentStatus.CONFIRMED }
+        if (futureAppointments.isNotEmpty()) {
+            throw BadRequestException(
+                "No se puede eliminar el empleado porque tiene citas futuras. " +
+                    "Reasigne o cancele las citas primero."
+            )
+        }
+
+        weeklyScheduleRepository.findAllByEmployee(employee).forEach { weeklyScheduleRepository.delete(it) }
+        scheduleBlockRepository.findAllByEmployee(employee).forEach { scheduleBlockRepository.delete(it) }
+        employeeServiceRepository.findAllByEmployee(employee).forEach { employeeServiceRepository.delete(it) }
+        employeeRepository.delete(employee)
     }
 
     @Transactional(readOnly = true)
@@ -117,15 +209,6 @@ class EmployeeService(
                 ?: throw ResourceNotFoundException("Servicio no encontrado")
         }
 
-        val servicesToRemove = currentLinks.filter { link ->
-            val serviceId = link.service?.serviceId
-            serviceId == null || serviceId !in requestedServiceIds
-        }
-
-        if (servicesToRemove.isNotEmpty()) {
-            employeeServiceRepository.deleteAll(servicesToRemove)
-        }
-
         if (servicesToAdd.isNotEmpty()) {
             employeeServiceRepository.saveAll(
                 servicesToAdd.map { service ->
@@ -152,7 +235,7 @@ class EmployeeService(
             ?: throw ResourceNotFoundException("Servicio no encontrado")
 
         val employeeService = employeeServiceRepository.findByEmployeeAndService(employee, service)
-            ?: throw ResourceNotFoundException("El empleado no tiene este servicio asociado")
+            ?: throw BadRequestException("El empleado no tiene este servicio asociado")
 
         employeeServiceRepository.delete(employeeService)
     }
@@ -224,6 +307,18 @@ class EmployeeService(
 
         if (scheduleBlockRepository.existsByEmployeeAndStartAtLessThanAndEndAtGreaterThan(employee, request.endAt, request.startAt)) {
             throw BadRequestException("El bloqueo se cruza con otro bloqueo existente")
+        }
+
+        val conflictingAppointments = appointmentRepository
+            .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
+                employee.employeeId!!, request.endAt, request.startAt
+            )
+            .filter { it.status == AppointmentStatus.CONFIRMED || it.status == AppointmentStatus.PENDING }
+        if (conflictingAppointments.isNotEmpty()) {
+            throw BadRequestException(
+                "No se puede crear el bloqueo porque existen citas ${if (conflictingAppointments.any { it.status == AppointmentStatus.CONFIRMED }) "confirmadas" else "pendientes"} en este horario. " +
+                    "Debe cancelar o reprogramar las citas primero."
+            )
         }
 
         val saved = scheduleBlockRepository.save(

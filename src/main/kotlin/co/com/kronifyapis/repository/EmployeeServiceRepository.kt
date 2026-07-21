@@ -1,5 +1,9 @@
 package co.com.kronifyapis.repository
 
+/**
+ * Repositorio que gestiona la relación entre empleados y servicios.
+ * Permite consultar qué servicios tiene asignado un empleado y viceversa.
+ */
 import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.model.EmployeeService
 import co.com.kronifyapis.model.Service

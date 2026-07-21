@@ -3,6 +3,10 @@ package co.com.kronifyapis.dto.user
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 
+/**
+ * DTO que recibe la contraseña actual y la nueva contraseña para cambiarla.
+ */
+
 data class UserChangePasswordRequest(
     @field:NotBlank(message = "La contraseña actual no puede estar vacía")
     val currentPassword: String,

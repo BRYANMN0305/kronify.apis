@@ -1,8 +1,14 @@
 package co.com.kronifyapis.dto.services
 
+
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
+
+/**
+ * DTO que recibe los datos para crear o actualizar un servicio.
+ * El nombre no puede estar vacío, la duración debe ser mayor a 0.
+ */
 
 data class ServiceRequest(
 

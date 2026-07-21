@@ -3,6 +3,7 @@ package co.com.kronifyapis.exception
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -26,15 +27,7 @@ class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.message, request)
     }
 
-    @ExceptionHandler(UserNotFoundException::class)
-    fun handleUserNotFoundException(
-        ex: UserNotFoundException,
-        request: HttpServletRequest
-    ): ResponseEntity<ErrorResponse> {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.message, request)
-    }
-
-    @ExceptionHandler(BadRequestException::class, TypeErrorException::class)
+    @ExceptionHandler(BadRequestException::class)
     fun handleBadRequest(
         ex: RuntimeException,
         request: HttpServletRequest
@@ -68,6 +61,14 @@ class GlobalExceptionHandler {
             ?.defaultMessage
             ?: "Validation error"
         return buildResponse(HttpStatus.BAD_REQUEST, message, request)
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleHttpMessageNotReadable(
+        ex: HttpMessageNotReadableException,
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        return buildResponse(HttpStatus.BAD_REQUEST, "Solicitud mal formada: ${ex.message}", request)
     }
 
     @ExceptionHandler(Exception::class)

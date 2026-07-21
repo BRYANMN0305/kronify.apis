@@ -1,19 +1,116 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; ">
-<div style="max-width: 480px; margin: auto; background: #fff; border-radius: 8px; padding: 32px;">
-    <h2 style="color: #2d2d2d; text-align: center">Te invitaron a unirte a Kronify</h2>
-    <p style="text-align: center">Fuiste invitado a formar parte de <strong th:text="${businessName}"></strong> como
-        empleado.</p>
-    <p style="text-align: center; margin: 32px 0;">
-        <a th:href="${link}"
-           style="background-color: #4f46e5; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-            Aceptar invitacion
-        </a>
-    </p>
-    <p style="color: #888; font-size: 13px; text-align: center">Este enlace expira en 7 dias. Si no esperabas este
-        correo, puedes
-        ignorarlo.</p>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invitación a Kronify</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+</head>
+<body style="margin:0; padding:0; background-color:#eef0f3; font-family: Arial, Helvetica, sans-serif;">
+
+<!-- Preheader (texto oculto que se ve en la vista previa del correo) -->
+<div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
+    Fuiste invitado a unirte a un equipo en Kronify. Acepta la invitación para comenzar.
 </div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       style="background-color:#eef0f3; padding:32px 16px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="520" cellpadding="0" cellspacing="0"
+                   style="max-width:520px; width:100%; background-color:#ffffff; border-radius:8px; border:1px solid #e2e5e9;">
+
+                <!-- Header -->
+                <tr>
+                    <td style="padding:28px 40px; border-bottom:1px solid #eef0f3;">
+                        <span style="color:#1a2b4c; font-size:18px; font-weight:bold; font-family: Arial, sans-serif;">Kronify</span>
+                    </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                    <td style="padding:40px 40px 8px 40px;">
+                        <h1 style="margin:0 0 16px 0; color:#1a2b4c; font-size:20px; font-weight:bold; line-height:1.3;">
+                            Te invitaron a unirte a Kronify
+                        </h1>
+                        <p style="margin:0 0 24px 0; color:#4a4f57; font-size:15px; line-height:1.6;">
+                            Hola,<br><br>
+                            Fuiste invitado a formar parte de
+                            <strong style="color:#1a2b4c;" th:text="${businessName}"></strong>
+                            como empleado dentro de la plataforma Kronify. Para continuar, confirma tu invitación
+                            haciendo clic en el siguiente botón.
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- CTA Button -->
+                <tr>
+                    <td style="padding:0 40px 32px 40px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="border-radius:6px; background-color:#1a2b4c;">
+                                    <a th:href="${link}"
+                                       style="display:inline-block; padding:13px 28px; color:#ffffff; font-size:15px; font-weight:bold; text-decoration:none; border-radius:6px; font-family: Arial, sans-serif;">
+                                        Aceptar invitación
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Fallback link -->
+                <tr>
+                    <td style="padding:0 40px 32px 40px;">
+                        <p style="margin:0; color:#8a8f98; font-size:12px; line-height:1.5;">
+                            Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+                            <a th:href="${link}" th:text="${link}" style="color:#1a2b4c; word-break:break-all;"></a>
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Divider -->
+                <tr>
+                    <td style="padding:0 40px;">
+                        <div style="border-top:1px solid #eef0f3;"></div>
+                    </td>
+                </tr>
+
+                <!-- Notice -->
+                <tr>
+                    <td style="padding:24px 40px;">
+                        <p style="margin:0; color:#8a8f98; font-size:12px; line-height:1.6;">
+                            Este enlace expira en 7 días por motivos de seguridad. Si no esperabas este correo,
+                            puedes ignorarlo; no se realizará ninguna acción sobre tu cuenta.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Footer fuera de la tarjeta -->
+            <table role="presentation" width="520" cellpadding="0" cellspacing="0"
+                   style="max-width:520px; width:100%; margin-top:20px;">
+                <tr>
+                    <td style="text-align:center; padding:0 20px;">
+                        <p style="margin:0 0 4px 0; color:#9298a1; font-size:12px;">
+                            Este es un mensaje automático, por favor no respondas a este correo.
+                        </p>
+                        <p style="margin:0; color:#9298a1; font-size:12px;">
+                            &copy; Kronify · Todos los derechos reservados
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
 </body>
 </html>

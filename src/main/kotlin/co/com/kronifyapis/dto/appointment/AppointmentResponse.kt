@@ -1,6 +1,12 @@
 package co.com.kronifyapis.dto.appointment
 
+import co.com.kronifyapis.model.enums.AppointmentOrigin
+import co.com.kronifyapis.model.enums.AppointmentStatus
 import java.time.LocalDateTime
+
+/**
+ * DTO que devuelve la información completa de una cita.
+ */
 
 data class AppointmentResponse(
     val appointmentId: Long,

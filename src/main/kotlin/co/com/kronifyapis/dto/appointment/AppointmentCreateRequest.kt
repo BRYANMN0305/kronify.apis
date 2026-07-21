@@ -1,9 +1,16 @@
 package co.com.kronifyapis.dto.appointment
 
+
 import jakarta.validation.constraints.Future
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 import java.time.LocalDateTime
+
+/**
+ * DTO que recibe los datos para crear una nueva cita.
+ * Si el cliente no está registrado, se envían sus datos en los campos
+ * customerName, customerLastName, customerPhone y customerEmail.
+ */
 
 data class AppointmentCreateRequest(
 

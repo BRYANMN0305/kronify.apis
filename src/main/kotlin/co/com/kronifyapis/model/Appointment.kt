@@ -1,7 +1,7 @@
 package co.com.kronifyapis.model
 
-import co.com.kronifyapis.dto.appointment.AppointmentOrigin
-import co.com.kronifyapis.dto.appointment.AppointmentStatus
+import co.com.kronifyapis.model.enums.AppointmentOrigin
+import co.com.kronifyapis.model.enums.AppointmentStatus
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -18,17 +18,17 @@ import java.time.LocalDateTime
 
 /**
  *Representación de la base de datos que almacena las citas agendadas,
- * esta entidad relaciona al negocio, servicio, empleado y cliente.
- * Aquí que se definen las propiedades de la cita.
+ * este modelo relaciona al negocio, servicio, empleado y cliente.
  *
  * Anotaciones utilizadas:
  *
- * @Entity para indicar que esta clase es una tabla en la base de datos.
+ * @Entity para indicar que esta clase es una entidad JPA.
  * @Table para indicar el nombre de la tabla en la base de datos.
  * @Id para indicar que esta columna es la clave primaria de la tabla.
  * @GeneratedValue para indicar que el valor de la clave primaria se genera automáticamente.
  * @JoinColumn para indicar la columna de la tabla que se usa para la relación con otra tabla.
  * @PreUpdate para actualizar la fecha de modificación en la tabla ante cualquier cambio realizado.
+ * @ManyToOne para indicar que esta columna es una relación de muchos a uno con otra tabla.
  */
 
 @Entity
@@ -72,7 +72,7 @@ data class Appointment(
     @Column(name = "cancellation_reason")
     var cancellationReason: String? = null,
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
