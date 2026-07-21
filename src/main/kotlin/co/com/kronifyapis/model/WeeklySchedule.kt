@@ -34,6 +34,8 @@ import java.time.LocalTime
         UniqueConstraint(columnNames = ["employee_id", "day_of_week"])
     ]
 )
+
+//prueba
 data class WeeklySchedule(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
