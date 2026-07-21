@@ -12,6 +12,22 @@ import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
+/**
+ * Modelo que representa una reseña o calificación que un cliente deja
+ * después de una cita. Cada reseña está asociada a una cita sepecífica
+ * y a un cliente.
+ *
+ * Anotaciones utilizadas:
+ *
+ * @Entity indica que esta clase es una entidad JPA.
+ * @Table especifica el nombre de la tabla en la base de datos.
+ * @Id indica que esta columna es la clave primaria de la tabla.
+ * @GeneratedValue indica que el valor de esta columna se genera automáticamente.
+ * @OneToOne indica que una cita solo puede tener una reseña.
+ * @ManyToOne indica que varias reseñas pueden pertenecer a un mismo cliente.
+ * @JoinColumn indica la columna usada para la relación.
+ */
+
 @Entity
 @Table(name = "reviews")
 data class Review(

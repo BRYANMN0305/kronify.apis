@@ -1,5 +1,9 @@
 package co.com.kronifyapis.repository
 
+/**
+ * Repositorio que gestiona la relación entre empleados y servicios.
+ * Permite consultar qué servicios tiene asignado un empleado y viceversa.
+ */
 import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.model.EmployeeService
 import co.com.kronifyapis.model.Service
@@ -12,6 +16,4 @@ interface EmployeeServiceRepository : JpaRepository<EmployeeService, Long> {
     fun findByEmployeeAndService(employee: Employee, service: Service): EmployeeService?
 
     fun existsByEmployeeAndService(employee: Employee, service: Service): Boolean
-
-    fun deleteByEmployeeAndService(employee: Employee, service: Service)
 }

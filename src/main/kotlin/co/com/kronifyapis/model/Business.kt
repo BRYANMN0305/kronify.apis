@@ -12,6 +12,21 @@ import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
+/**
+ * Modelo que representa la información de un negocio.
+ * Este modelo relaciona un negocio con su propietario.
+ *
+ * Anotaciones utilizadas:
+ *
+ * @Entity indica que esta clase es una entidad JPA.
+ * @Table especifica el nombre de la tabla en la base de datos.
+ * @Id indica que esta columna es la clave primaria de la tabla.
+ * @GeneratedValue indica que el valor de esta columna se genera automáticamente.
+ * @ManyToOne para indicar que esta columna es una relación de muchos a uno con otra tabla.
+ * @JoinColumn para indicar la columna de la tabla que se usa para la relación con otra tabla.
+ * @PreUpdate para actualizar la fecha de modificación en la tabla ante cualquier cambio realizado.
+ */
+
 @Entity
 @Table(name = "business")
 data class Business(
@@ -54,7 +69,7 @@ data class Business(
     @Column(name = "active", nullable = false)
     var active: Boolean = true,
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)

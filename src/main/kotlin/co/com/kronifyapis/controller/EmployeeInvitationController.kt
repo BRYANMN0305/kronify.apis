@@ -1,6 +1,7 @@
 package co.com.kronifyapis.controller
 
 import co.com.kronifyapis.dto.auth.AuthenticatedUser
+import co.com.kronifyapis.dto.employeeInvitation.AcceptInvitationRequest
 import co.com.kronifyapis.dto.employeeInvitation.InvitationRequest
 import co.com.kronifyapis.dto.employeeInvitation.InvitationResponse
 import co.com.kronifyapis.service.EmployeeInvitationService
@@ -51,5 +52,13 @@ class EmployeeInvitationController(
         @PathVariable invitationId: Long
     ): ResponseEntity<InvitationResponse> {
         return ResponseEntity.ok(invitationService.cancelInvitation(user.userId, invitationId))
+    }
+
+    @PostMapping("/accept")
+    fun acceptInvitation(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @Valid @RequestBody request: AcceptInvitationRequest
+    ): ResponseEntity<InvitationResponse> {
+        return ResponseEntity.ok(invitationService.acceptInvitation(user.userId, request.token))
     }
 }

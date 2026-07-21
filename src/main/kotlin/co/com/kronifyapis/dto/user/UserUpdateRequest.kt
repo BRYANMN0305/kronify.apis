@@ -3,6 +3,11 @@ package co.com.kronifyapis.dto.user
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Pattern
 
+/**
+ * DTO que recibe los datos para actualizar el perfil de un usuario.
+ * Solo se actualizan los campos que se envían.
+ */
+
 data class UserUpdateRequest(
 
     @field:NotBlank (message = "El nombre no puede estar vacío")

@@ -1,11 +1,17 @@
 package co.com.kronifyapis.dto.auth
 
-import co.com.kronifyapis.dto.user.ProfileType
+
+import co.com.kronifyapis.model.enums.ProfileType
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
+
+/**
+ * DTO que recibe los datos para registrar un nuevo usuario.
+ * El tipo de perfil define si la cuenta será para agendar citas o para gestionar un negocio.
+ */
 
 data class UserRegisterRequest(
 

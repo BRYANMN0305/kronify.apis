@@ -8,6 +8,7 @@ import co.com.kronifyapis.exception.ForbiddenOperationException
 import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.BusinessPlan
 import co.com.kronifyapis.model.Plan
+import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.repository.AppointmentRepository
 import co.com.kronifyapis.repository.BusinessPlanRepository
 import co.com.kronifyapis.repository.BusinessRepository
@@ -15,6 +16,7 @@ import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.PlanRepository
 import co.com.kronifyapis.repository.ServiceRepository
 import co.com.kronifyapis.repository.UserRepository
+import co.com.kronifyapis.utils.ProfileValidationHelper
 import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -29,7 +31,8 @@ class PlanService(
     private val userRepository: UserRepository,
     private val serviceRepository: ServiceRepository,
     private val appointmentRepository: AppointmentRepository,
-    private val employeeRepository: EmployeeRepository
+    private val employeeRepository: EmployeeRepository,
+    private val profileValidationHelper: ProfileValidationHelper
 ) {
 
     @PostConstruct
@@ -75,11 +78,10 @@ class PlanService(
 
     @Transactional
     fun assignPlan(userId: Long, request: AssignPlanRequest): BusinessPlanResponse {
-        val user = userRepository.findByUserId(userId)
-            ?: throw ResourceNotFoundException("Usuario no encontrado")
+        val user = profileValidationHelper.requireBusiness(userId)
 
         val business = businessRepository.findByOwner(user)
-            ?: throw ResourceNotFoundException("Negocio no encontrado")
+            ?: throw ResourceNotFoundException("No tienes un negocio registrado. Solo el propietario del negocio puede asignar planes.")
 
         val plan = planRepository.findById(request.planId)
             .orElseThrow { ResourceNotFoundException("Plan no encontrado") }
@@ -127,8 +129,8 @@ class PlanService(
         val yearMonth = YearMonth.from(now)
         val monthStart = yearMonth.atDay(1).atStartOfDay()
         val monthEnd = yearMonth.plusMonths(1).atDay(1).atStartOfDay()
-        val currentMonthAppointmentCount = appointmentRepository.countByBusinessInDateRange(
-            businessId, monthStart, monthEnd
+        val currentMonthAppointmentCount = appointmentRepository.countByBusiness_BusinessIdAndStartAtGreaterThanEqualAndStartAtLessThanAndStatusNotIn(
+            businessId, monthStart, monthEnd, listOf(AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW)
         )
 
         val employeeCount = employeeRepository.countByBusiness_BusinessId(businessId)
@@ -156,7 +158,7 @@ class PlanService(
     }
 
     fun validateServiceLimit(businessId: Long) {
-        val businessPlan = businessPlanRepository.findByBusiness_BusinessIdAndActiveTrue(businessId)
+        val businessPlan = businessPlanRepository.findActiveWithLock(businessId)
             ?: return
 
         val limit = businessPlan.plan!!.serviceLimit ?: return
@@ -169,7 +171,7 @@ class PlanService(
     }
 
     fun validateAppointmentLimit(businessId: Long) {
-        val businessPlan = businessPlanRepository.findByBusiness_BusinessIdAndActiveTrue(businessId)
+        val businessPlan = businessPlanRepository.findActiveWithLock(businessId)
             ?: return
 
         val limit = businessPlan.plan!!.monthlyAppointmentLimit ?: return
@@ -177,8 +179,8 @@ class PlanService(
         val yearMonth = YearMonth.from(now)
         val monthStart = yearMonth.atDay(1).atStartOfDay()
         val monthEnd = yearMonth.plusMonths(1).atDay(1).atStartOfDay()
-        val currentCount = appointmentRepository.countByBusinessInDateRange(
-            businessId, monthStart, monthEnd
+        val currentCount = appointmentRepository.countByBusiness_BusinessIdAndStartAtGreaterThanEqualAndStartAtLessThanAndStatusNotIn(
+            businessId, monthStart, monthEnd, listOf(AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW)
         )
         if (currentCount >= limit) {
             throw ForbiddenOperationException(
@@ -188,7 +190,7 @@ class PlanService(
     }
 
     fun validateEmployeeLimit(businessId: Long) {
-        val businessPlan = businessPlanRepository.findByBusiness_BusinessIdAndActiveTrue(businessId)
+        val businessPlan = businessPlanRepository.findActiveWithLock(businessId)
             ?: return
 
         val limit = businessPlan.plan!!.employeeLimit ?: return
