@@ -48,7 +48,7 @@ class EmployeeInvitationService(
         }
 
         val saved = invitationRepository.save(invitation)
-        emailService.sendInvitationEmail(saved.email, saved.token, business.name)
+        //emailService.sendInvitationEmail(saved.email, saved.token, business.name)
         return saved.toResponse()
     }
 
