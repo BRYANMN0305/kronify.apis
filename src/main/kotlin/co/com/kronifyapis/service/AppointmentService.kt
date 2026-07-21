@@ -6,6 +6,7 @@ import co.com.kronifyapis.dto.appointment.AppointmentRescheduleRequest
 import co.com.kronifyapis.dto.appointment.AppointmentResponse
 import co.com.kronifyapis.dto.appointment.AppointmentStatus
 import co.com.kronifyapis.dto.appointment.AppointmentStatusUpdateRequest
+import co.com.kronifyapis.dto.user.ProfileType
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ConflictException
 import co.com.kronifyapis.exception.ForbiddenOperationException
@@ -22,6 +23,7 @@ import co.com.kronifyapis.repository.EmployeeServiceRepository
 import co.com.kronifyapis.repository.ScheduleBlockRepository
 import co.com.kronifyapis.repository.ServiceRepository
 import co.com.kronifyapis.repository.UserRepository
+import co.com.kronifyapis.repository.WeeklyScheduleRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -36,6 +38,7 @@ class AppointmentService(
     private val customerRepository: CustomerRepository,
     private val userRepository: UserRepository,
     private val scheduleBlockRepository: ScheduleBlockRepository,
+    private val weeklyScheduleRepository: WeeklyScheduleRepository,
     private val planService: PlanService
 ) {
 
@@ -61,22 +64,26 @@ class AppointmentService(
         businessId: Long,
         request: AppointmentCreateRequest
     ): AppointmentResponse {
-        val business = businessRepository.findById(businessId)
+        businessRepository.findById(businessId)
             .orElseThrow { ResourceNotFoundException("Negocio no encontrado") }
+            .takeIf { it.active }
+            ?: throw ResourceNotFoundException("Negocio no encontrado")
 
         val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(request.employeeId, businessId)
             ?: throw BadRequestException("El empleado no pertenece a este negocio")
 
-        return createAppointment(businessId, request, employee, AppointmentOrigin.PUBLIC)
+        return createAppointment(businessId, request, employee, AppointmentOrigin.PUBLIC, userId)
     }
 
     private fun createAppointment(
         businessId: Long,
         request: AppointmentCreateRequest,
         employee: Employee,
-        origin: AppointmentOrigin
+        origin: AppointmentOrigin,
+        clientUserId: Long? = null
     ): AppointmentResponse {
         val service = serviceRepository.findByServiceIdAndBusinessBusinessId(request.serviceId, businessId)
+            ?.takeIf { it.active }
             ?: throw BadRequestException("El servicio no pertenece a este negocio")
 
         if (!employeeServiceRepository.existsByEmployeeAndService(employee, service)) {
@@ -85,7 +92,7 @@ class AppointmentService(
 
         planService.validateAppointmentLimit(businessId)
 
-        val customer = resolveCustomer(request)
+        val customer = resolveCustomer(request, origin, clientUserId)
 
         val startAt = request.startAt
         val endAt = startAt.plusMinutes(service.durationMinutes.toLong())
@@ -94,10 +101,15 @@ class AppointmentService(
             throw BadRequestException("La hora de inicio debe ser anterior a la hora de fin")
         }
 
+        if (!isWithinWeeklySchedule(employee, startAt, endAt)) {
+            throw ConflictException("El horario solicitado esta fuera del horario del empleado")
+        }
+
         val overlappingAppointments = appointmentRepository
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
                 employee.employeeId!!, endAt, startAt
             )
+            .filter { it.status != AppointmentStatus.CANCELLED && it.status != AppointmentStatus.NO_SHOW }
         if (overlappingAppointments.isNotEmpty()) {
             throw ConflictException("El empleado ya tiene una cita en este horario")
         }
@@ -241,19 +253,70 @@ class AppointmentService(
         return saved.toResponse(service.name, service.durationMinutes, employee, customer)
     }
 
-    private fun resolveCustomer(request: AppointmentCreateRequest): Customer {
+    private fun resolveCustomer(
+        request: AppointmentCreateRequest,
+        origin: AppointmentOrigin,
+        clientUserId: Long?
+    ): Customer {
+        if (origin == AppointmentOrigin.PUBLIC && request.customerId != null) {
+            throw BadRequestException("customerId no se permite en reservas publicas")
+        }
+
+        if (origin == AppointmentOrigin.PUBLIC && clientUserId != null) {
+            val user = userRepository.findByUserId(clientUserId)
+                ?: throw ResourceNotFoundException("Usuario no encontrado")
+
+            if (user.profileType != ProfileType.CLIENT) {
+                throw ForbiddenOperationException("Solo un usuario CLIENT puede reservar como cliente registrado")
+            }
+
+            return customerRepository.findByUser_UserId(clientUserId)
+                ?: customerRepository.save(
+                    Customer(
+                        user = user,
+                        name = request.customerName ?: user.name,
+                        lastName = request.customerLastName ?: user.lastName,
+                        phoneNumber = request.customerPhone ?: user.phoneNumber,
+                        email = request.customerEmail ?: user.email
+                    )
+                )
+        }
+
         if (request.customerId != null) {
             return customerRepository.findById(request.customerId)
                 .orElseThrow { BadRequestException("Cliente no encontrado") }
         }
 
+        validateGuestCustomerData(request)
+
         val customer = Customer(
-            name = request.customerName,
-            lastName = request.customerLastName,
-            phoneNumber = request.customerPhone,
-            email = request.customerEmail
+            name = request.customerName!!.trim(),
+            lastName = request.customerLastName?.trim(),
+            phoneNumber = request.customerPhone!!.trim(),
+            email = request.customerEmail?.trim()
         )
         return customerRepository.save(customer)
+    }
+
+    private fun validateGuestCustomerData(request: AppointmentCreateRequest) {
+        if (request.customerName.isNullOrBlank()) {
+            throw BadRequestException("customerName es requerido para reservas de invitados")
+        }
+
+        if (request.customerPhone.isNullOrBlank()) {
+            throw BadRequestException("customerPhone es requerido para reservas de invitados")
+        }
+    }
+
+    private fun isWithinWeeklySchedule(employee: Employee, startAt: LocalDateTime, endAt: LocalDateTime): Boolean {
+        if (startAt.toLocalDate() != endAt.toLocalDate()) return false
+
+        val schedule = weeklyScheduleRepository.findAllByEmployee(employee)
+            .firstOrNull { it.dayOfWeek == startAt.dayOfWeek.value }
+            ?: return false
+
+        return !startAt.toLocalTime().isBefore(schedule.startTime) &&
+            !endAt.toLocalTime().isAfter(schedule.endTime)
     }
 
     private fun findUserBusiness(userId: Long): Business {
