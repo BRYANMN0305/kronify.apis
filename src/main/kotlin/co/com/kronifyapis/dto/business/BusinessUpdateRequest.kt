@@ -3,6 +3,11 @@ package co.com.kronifyapis.dto.business
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.Pattern
 
+/**
+ * DTO que recibe los datos para actualizar un negocio existente.
+ * Todos los campos son opcionales: solo se actualizan los que se envían.
+ */
+
 data class BusinessUpdateRequest(
     val name: String? = null,
 

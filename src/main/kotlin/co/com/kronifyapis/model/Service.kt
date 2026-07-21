@@ -14,6 +14,22 @@ import jakarta.persistence.UniqueConstraint
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
+/**
+ * Modelo que representa un servicio ofrecido por un negocio.
+ * Cada servicio pertenece a un solo negocio y tiene una duración y precio.
+ *
+ * Anotaciones utilizadas:
+ *
+ * @Entity indica que esta clase es una entidad JPA.
+ * @Table especifica el nombre de la tabla y sus restricciones únicas.
+ * @Id indica que esta columna es la clave primaria de la tabla.
+ * @GeneratedValue indica que el valor de esta columna se genera automáticamente.
+ * @ManyToOne indica que varios servicios pueden pertenecer a un mismo negocio.
+ * @JoinColumn indica la columna usada para la relación con la tabla negocio.
+ * @UniqueConstraint evita que un negocio tenga dos servicios con el mismo nombre.
+ * @PreUpdate para actualizar la fecha de modificación ante cualquier cambio.
+ */
+
 @Entity
 @Table(
     name = "services",
@@ -46,7 +62,7 @@ data class Service(
     @Column(name = "active", nullable = false)
     var active: Boolean = true,
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)

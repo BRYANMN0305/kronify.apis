@@ -5,16 +5,16 @@ import co.com.kronifyapis.dto.business.BusinessCreateResponse
 import co.com.kronifyapis.dto.business.BusinessSettingsResponse
 import co.com.kronifyapis.dto.business.BusinessUpdateRequest
 import co.com.kronifyapis.dto.business.BusinessUpdateResponse
-import co.com.kronifyapis.dto.user.ProfileType
+import co.com.kronifyapis.model.enums.ProfileType
 import co.com.kronifyapis.exception.ConflictException
 import co.com.kronifyapis.exception.ForbiddenOperationException
-import co.com.kronifyapis.exception.InvalidCredentialsException
 import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.UserRepository
+import co.com.kronifyapis.utils.ProfileValidationHelper
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -24,17 +24,16 @@ class BusinessService(
     private val businessRepository: BusinessRepository,
     private val employeeRepository: EmployeeRepository,
     private val userRepository: UserRepository,
-    private val planService: PlanService
+    private val planService: PlanService,
+    private val profileValidationHelper: ProfileValidationHelper
 ) {
 
     @Transactional
     fun createBusiness(ownerId: Long, request: BusinessCreateRequest): BusinessCreateResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
-            ?: throw InvalidCredentialsException("Dueño no encontrado")
+            ?: throw ResourceNotFoundException("Dueño no encontrado")
 
-        if (ownerUser.profileType != ProfileType.BUSINESS) {
-            throw ForbiddenOperationException("El perfil del usuario no es BUSINESS")
-        }
+        profileValidationHelper.requireProfileType(ownerUser, ProfileType.BUSINESS)
 
         val normalizedSlug = request.slug.trim().lowercase()
 
@@ -87,7 +86,7 @@ class BusinessService(
     @Transactional(readOnly = true)
     fun getBusinessSettings(ownerId: Long): BusinessSettingsResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
-            ?: throw InvalidCredentialsException("Usuario no encontrado")
+            ?: throw ResourceNotFoundException("Usuario no encontrado")
 
         val business = businessRepository.findByOwner(ownerUser)
             ?: throw ResourceNotFoundException("Negocio no encontrado")
@@ -98,7 +97,7 @@ class BusinessService(
     @Transactional
     fun updateBusiness(ownerId: Long, request: BusinessUpdateRequest): BusinessUpdateResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
-            ?: throw InvalidCredentialsException("Usuario no encontrado")
+            ?: throw ResourceNotFoundException("Usuario no encontrado")
 
         val business = businessRepository.findByOwner(ownerUser)
             ?: throw ResourceNotFoundException("Negocio no encontrado")

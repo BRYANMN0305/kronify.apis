@@ -12,6 +12,21 @@ import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import java.time.LocalTime
 
+/**
+ * Modelo que representa el horario semanal de un empleado.
+ * Define qué días y en qué horario trabaja un empleado de forma regular.
+ *
+ * Anotaciones utilizadas:
+ *
+ * @Entity indica que esta clase es una entidad JPA.
+ * @Table especifica el nombre de la tabla y sus restricciones únicas.
+ * @Id indica que esta columna es la clave primaria de la tabla.
+ * @GeneratedValue indica que el valor de esta columna se genera automáticamente.
+ * @ManyToOne indica que varios horarios pertenecen a un mismo empleado.
+ * @JoinColumn indica la columna usada para la relación con la tabla empleado.
+ * @UniqueConstraint evita que un empleado tenga dos horarios para el mismo día.
+ */
+
 @Entity
 @Table(
     name = "weekly_schedules",

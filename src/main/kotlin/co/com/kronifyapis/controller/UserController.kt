@@ -4,6 +4,7 @@ import co.com.kronifyapis.dto.auth.AuthenticatedUser
 import co.com.kronifyapis.dto.auth.LinkedAuthMethodResponse
 import co.com.kronifyapis.dto.user.UserChangePasswordRequest
 import co.com.kronifyapis.dto.user.UserChangePasswordResponse
+import co.com.kronifyapis.dto.user.UserProfileResponse
 import co.com.kronifyapis.dto.user.UserUpdateRequest
 import co.com.kronifyapis.dto.user.UserUpdateResponse
 import co.com.kronifyapis.service.AuthService
@@ -23,6 +24,13 @@ class UserController(
     private val userService: UserService,
     private val authService: AuthService
 ) {
+
+    @GetMapping("/profile")
+    fun getProfile(
+        @AuthenticationPrincipal user: AuthenticatedUser
+    ): ResponseEntity<UserProfileResponse> {
+        return ResponseEntity.ok(userService.getProfile(user.userId))
+    }
 
     @PatchMapping("/update")
     fun updateUser(

@@ -12,6 +12,22 @@ import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
+/**
+ * Modelo que representa a los clientes en la base de datos.
+ * Este modelo relaciona un cliente con un usuario.
+ *
+ * Anotaciones utilizadas:
+ *
+ * @Entity indica que esta clase es una entidad JPA.
+ * @Table especifica el nombre de la tabla en la base de datos.
+ * @Id indica que el campo customerId es la clave primaria de la entidad.
+ * @GeneratedValue indica que el valor de esta columna se genera automáticamente.
+ * @OneToOne indica que hay una relación uno a uno con otra tabla.
+ * @JoinColumn indica la columna de la tabla que se usa para la relación con otra tabla.
+ * @PreUpdate para actualizar la fecha de modificación en la tabla ante cualquier cambio realizado.
+ *
+ */
+
 @Entity
 @Table(name = "customers")
 data class Customer(
@@ -36,7 +52,7 @@ data class Customer(
     @Column(name = "email")
     var email: String? = null,
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
