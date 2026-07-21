@@ -6,6 +6,7 @@ import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.Appointment
 import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.Employee
+import co.com.kronifyapis.model.EmployeeService
 import co.com.kronifyapis.model.ScheduleBlock
 import co.com.kronifyapis.model.Service
 import co.com.kronifyapis.model.User
@@ -292,10 +293,8 @@ class AvailabilityServiceTest {
     fun `sin employeeId consulta todos los empleados activos que tengan el servicio asignado`() {
         mockCommonLookups(durationMinutes = 30)
         val empConServicio = employee(active = true)
-        val empSinServicio =
-            Employee(employeeId = 200L, user = User(userId = 6L, name = "Luis", lastName = "Gomez"), active = true)
-        val empInactivo =
-            Employee(employeeId = 300L, user = User(userId = 7L, name = "Sara", lastName = "Diaz"), active = false)
+        val empSinServicio = Employee(employeeId = 200L, user = User(userId = 6L, name = "Luis", lastName = "Gomez"), active = true)
+        val empInactivo = Employee(employeeId = 300L, user = User(userId = 7L, name = "Sara", lastName = "Diaz"), active = false)
 
         every { employeeRepository.findAllByBusiness_BusinessId(businessId) } returns listOf(
             empConServicio, empSinServicio, empInactivo
@@ -311,11 +310,7 @@ class AvailabilityServiceTest {
             scheduleBlockRepository.findAllByEmployeeAndStartAtLessThanAndEndAtGreaterThan(empConServicio, any(), any())
         } returns emptyList()
         every {
-            appointmentRepository.findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
-                empConServicio.employeeId!!,
-                any(),
-                any()
-            )
+            appointmentRepository.findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(empConServicio.employeeId!!, any(), any())
         } returns emptyList()
 
         val result = availabilityService.getAvailability(businessId, serviceId, tomorrow, null)
