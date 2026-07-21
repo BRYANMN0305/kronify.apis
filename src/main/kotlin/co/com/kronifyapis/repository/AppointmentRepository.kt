@@ -18,6 +18,12 @@ interface AppointmentRepository : JpaRepository<Appointment, Long> {
         startAt: LocalDateTime
     ): List<Appointment>
 
+    fun findAllByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
+        employeeId: Long,
+        endAt: LocalDateTime,
+        startAt: LocalDateTime
+    ): List<Appointment>
+
     @Query("SELECT COUNT(a) FROM Appointment a WHERE a.business.businessId = :businessId AND a.startAt >= :start AND a.startAt < :end AND a.status NOT IN ('CANCELLED', 'NO_SHOW')")
     fun countByBusinessInDateRange(
         @Param("businessId") businessId: Long,

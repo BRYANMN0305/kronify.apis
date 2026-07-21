@@ -29,6 +29,7 @@ class SecurityConfig(
                 it.requestMatchers(HttpMethod.GET, "/").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                it.requestMatchers(HttpMethod.GET, "/public/**").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/appointments/").permitAll()
                 it.requestMatchers(
                     "/swagger-ui.html",

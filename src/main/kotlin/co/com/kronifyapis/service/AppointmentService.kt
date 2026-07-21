@@ -36,7 +36,8 @@ class AppointmentService(
     private val customerRepository: CustomerRepository,
     private val userRepository: UserRepository,
     private val scheduleBlockRepository: ScheduleBlockRepository,
-    private val planService: PlanService
+    private val planService: PlanService,
+    private val availabilityService: AvailabilityService
 ) {
 
     @Transactional
@@ -107,6 +108,10 @@ class AppointmentService(
         )
         if (hasBlock) {
             throw ConflictException("El empleado tiene un bloqueo en este horario")
+        }
+
+        if (!availabilityService.isSlotAvailable(employee, service.durationMinutes, startAt)) {
+            throw ConflictException("El horario solicitado no esta disponible")
         }
 
         val appointment = Appointment(
