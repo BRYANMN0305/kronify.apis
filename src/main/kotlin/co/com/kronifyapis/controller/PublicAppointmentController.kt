@@ -1,5 +1,6 @@
 package co.com.kronifyapis.controller
 
+import co.com.kronifyapis.dto.appointment.AppointmentAutofillResponse
 import co.com.kronifyapis.dto.appointment.AppointmentCreateRequest
 import co.com.kronifyapis.dto.appointment.AppointmentResponse
 import co.com.kronifyapis.dto.auth.AuthenticatedUser
@@ -9,6 +10,7 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -20,6 +22,13 @@ import org.springframework.web.bind.annotation.RestController
 class PublicAppointmentController(
     private val appointmentService: AppointmentService
 ) {
+
+    @GetMapping("/autofill")
+    fun getAutofill(
+        @AuthenticationPrincipal user: AuthenticatedUser
+    ): ResponseEntity<AppointmentAutofillResponse> {
+        return ResponseEntity.ok(appointmentService.getBookingAutofill(user.userId))
+    }
 
     @PostMapping("/")
     fun createAppointment(
