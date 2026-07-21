@@ -17,6 +17,8 @@ interface WeeklyScheduleRepository : JpaRepository<WeeklySchedule, Long> {
     //Busca un horario semanal por su ID y empleado
     fun findByWeeklyScheduleIdAndEmployee(weeklyScheduleId: Long, employee: Employee): WeeklySchedule?
 
+    fun deleteAllByEmployee(employee: Employee)
+
     //Busca un horario semanal por empleado y día de la semana
     fun findByEmployeeAndDayOfWeek(employee: Employee, dayOfWeek: Int): WeeklySchedule?
 }

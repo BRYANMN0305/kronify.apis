@@ -16,4 +16,6 @@ interface EmployeeServiceRepository : JpaRepository<EmployeeService, Long> {
     fun findByEmployeeAndService(employee: Employee, service: Service): EmployeeService?
 
     fun existsByEmployeeAndService(employee: Employee, service: Service): Boolean
+
+    fun deleteByEmployeeAndService(employee: Employee, service: Service)
 }
