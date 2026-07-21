@@ -1,6 +1,11 @@
 package co.com.kronifyapis.dto.services
 
+
 import java.time.LocalDateTime
+
+/**
+ * DTO que devuelve la información de un servicio.
+ */
 
 data class ServiceResponse(
     val id: Long,

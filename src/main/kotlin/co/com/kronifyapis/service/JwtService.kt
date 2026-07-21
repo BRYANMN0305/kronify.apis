@@ -1,7 +1,7 @@
 package co.com.kronifyapis.service
 
 import co.com.kronifyapis.dto.auth.AuthenticatedUser
-import co.com.kronifyapis.dto.user.ProfileType
+import co.com.kronifyapis.model.enums.ProfileType
 import co.com.kronifyapis.model.User
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository

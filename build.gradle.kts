@@ -56,6 +56,14 @@ dependencies {
     testCompileOnly("org.projectlombok:lombok")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testAnnotationProcessor("org.projectlombok:lombok")
+
+    testImplementation(kotlin("test"))
+
+    testImplementation("io.mockk:mockk:1.13.13")
+
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
 }
 
 kotlin {

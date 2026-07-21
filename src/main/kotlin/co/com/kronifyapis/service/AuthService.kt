@@ -4,12 +4,13 @@ import co.com.kronifyapis.dto.auth.LoginRequest
 import co.com.kronifyapis.dto.auth.LinkedAuthMethodResponse
 import co.com.kronifyapis.dto.auth.TokenResponse
 import co.com.kronifyapis.dto.auth.UserRegisterRequest
-import co.com.kronifyapis.dto.employeeInvitation.StatusType
-import co.com.kronifyapis.dto.user.ProfileType
+import co.com.kronifyapis.model.enums.StatusType
+import co.com.kronifyapis.model.enums.ProfileType
 import co.com.kronifyapis.dto.user.UserResponse
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ConflictException
 import co.com.kronifyapis.exception.InvalidCredentialsException
+import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.model.User
 import co.com.kronifyapis.repository.EmployeeInvitationRepository
@@ -53,6 +54,11 @@ class AuthService(
             profileType = request.profileType,
         )
         val savedUser = userRepository.save(user)
+
+        if (savedUser.profileType == ProfileType.CLIENT) {
+            return savedUser.toResponse()
+        }
+
         linkInvitationIfNeeded(savedUser)
         return savedUser.toResponse()
     }
@@ -64,7 +70,7 @@ class AuthService(
             lastName = lastName,
             phoneNumber = phoneNumber,
             email = email,
-            verifiedEmail = verifiedEmail,
+
             profileType = profileType,
             active = active,
             createdAt = createdAt,
@@ -87,7 +93,7 @@ class AuthService(
     @Transactional(readOnly = true)
     fun listLinkedAuthMethods(userId: Long): List<LinkedAuthMethodResponse> {
         val user = userRepository.findByUserId(userId)
-            ?: throw InvalidCredentialsException("Usuario no encontrado")
+            ?: throw ResourceNotFoundException("Usuario no encontrado")
 
         val linkedOauthAccounts = oauthAccountRepository.findAllByUser_UserId(user.userId!!)
         val passwordLinked = user.passwordHash.isNotBlank()
@@ -127,9 +133,13 @@ class AuthService(
     private fun linkInvitationIfNeeded(user: User) {
         val invitation = employeeInvitationRepository.findFirstByEmailAndStatus(user.email, StatusType.PENDING)
             ?: return
-        if (user.profileType != ProfileType.BUSINESS) {
-            throw ConflictException("La invitación solo puede aceptarse con una cuenta BUSINESS")
+
+        if (invitation.expiresAt.isBefore(LocalDateTime.now())) {
+            invitation.status = StatusType.EXPIRED
+            employeeInvitationRepository.save(invitation)
+            return
         }
+
         if (employeeRepository.existsByUserAndBusiness(user, invitation.business!!)) return
 
         planService.validateEmployeeLimit(invitation.business!!.businessId!!)

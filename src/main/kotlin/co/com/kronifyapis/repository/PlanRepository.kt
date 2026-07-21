@@ -1,3 +1,7 @@
+/**
+ * Repositorio que gestiona los planes de suscripción del sistema.
+ * Permite buscar un plan por su nombre.
+ */
 package co.com.kronifyapis.repository
 
 import co.com.kronifyapis.model.Plan

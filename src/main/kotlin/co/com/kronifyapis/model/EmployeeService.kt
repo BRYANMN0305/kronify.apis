@@ -11,6 +11,23 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 
+/**
+ * Modelo que relaciona un empleado con los servicios que puede realizar.
+ * Es una tabla intermedia (muchos a muchos) entre empleados y servicios.
+ * Un empleado puede tener varios servicios y un servicio puede ser realizado
+ * por varios empleados.
+ *
+ * Anotaciones utilizadas:
+ *
+ * @Entity indica que esta clase es una entidad JPA.
+ * @Table especifica el nombre de la tabla y sus restricciones únicas.
+ * @Id indica que esta columna es la clave primaria de la tabla.
+ * @GeneratedValue indica que el valor de esta columna se genera automáticamente.
+ * @ManyToOne indica que varias asignaciones pueden pertenecer a un mismo empleado o servicio.
+ * @JoinColumn indica la columna usada para la relación.
+ * @UniqueConstraint evita asignar el mismo servicio dos veces al mismo empleado.
+ */
+
 @Entity
 @Table(
     name = "employee_services",

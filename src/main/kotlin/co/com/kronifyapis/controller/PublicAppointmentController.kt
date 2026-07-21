@@ -3,6 +3,7 @@ package co.com.kronifyapis.controller
 import co.com.kronifyapis.dto.appointment.AppointmentCreateRequest
 import co.com.kronifyapis.dto.appointment.AppointmentResponse
 import co.com.kronifyapis.dto.auth.AuthenticatedUser
+import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.service.AppointmentService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -26,7 +27,7 @@ class PublicAppointmentController(
         @AuthenticationPrincipal user: AuthenticatedUser?
     ): ResponseEntity<AppointmentResponse> {
         val businessId = request.businessId
-            ?: throw IllegalArgumentException("businessId es requerido")
+            ?: throw BadRequestException("businessId es requerido")
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(appointmentService.createAppointmentByClient(user?.userId, businessId, request))

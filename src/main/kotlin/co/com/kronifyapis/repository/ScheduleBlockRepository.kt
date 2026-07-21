@@ -16,10 +16,4 @@ interface ScheduleBlockRepository : JpaRepository<ScheduleBlock, Long> {
         endAt: LocalDateTime,
         startAt: LocalDateTime
     ): Boolean
-
-    fun findAllByEmployeeAndStartAtLessThanAndEndAtGreaterThan(
-        employee: Employee,
-        endAt: LocalDateTime,
-        startAt: LocalDateTime
-    ): List<ScheduleBlock>
 }
