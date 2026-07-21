@@ -3,6 +3,10 @@ package co.com.kronifyapis.dto.auth
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 
+/**
+ * DTO que recibe el correo y contraseña para iniciar sesión.
+ */
+
 data class LoginRequest(
     @field:Email
     @field:NotBlank (message = "Correo no puede estar vacío")

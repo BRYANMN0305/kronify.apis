@@ -12,6 +12,23 @@ import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
 
+/**
+ * Modelo que vincula una cuenta de usuario con un proveedor externo
+ * (Google, Microsoft, etc.). Permite que un usuario inicie sesión
+ * usando su cuenta de redes sociales o servicios externos.
+ *
+ * Anotaciones utilizadas:
+ *
+ * @Entity indica que esta clase es una entidad JPA.
+ * @Table especifica el nombre de la tabla y sus restricciones únicas.
+ * @Id indica que esta columna es la clave primaria de la tabla.
+ * @GeneratedValue indica que el valor de esta columna se genera automáticamente.
+ * @ManyToOne indica que varias cuentas OAuth pueden pertenecer a un mismo usuario.
+ * @JoinColumn indica la columna usada para la relación.
+ * @UniqueConstraint evita vincular el mismo proveedor dos veces al mismo usuario,
+ * y evita que un mismo ID de proveedor se vincule a varios usuarios.
+ */
+
 @Entity
 @Table(
     name = "oauth_accounts",

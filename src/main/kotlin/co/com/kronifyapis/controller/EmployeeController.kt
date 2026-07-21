@@ -4,6 +4,7 @@ import co.com.kronifyapis.dto.auth.AuthenticatedUser
 import co.com.kronifyapis.dto.employee.EmployeeResponse
 import co.com.kronifyapis.dto.employee.EmployeeSchedulePermissionRequest
 import co.com.kronifyapis.dto.employee.EmployeeServiceUpdateRequest
+import co.com.kronifyapis.dto.employee.EmployeeUpdateRequest
 import co.com.kronifyapis.dto.employee.ScheduleBlockRequest
 import co.com.kronifyapis.dto.employee.ScheduleBlockResponse
 import co.com.kronifyapis.dto.employee.OwnerEmployeeToggleRequest
@@ -53,6 +54,32 @@ class EmployeeController(
         @Valid @RequestBody request: OwnerEmployeeToggleRequest
     ): ResponseEntity<EmployeeResponse> {
         return ResponseEntity.ok(employeeService.toggleOwnerEmployee(user.userId, request))
+    }
+
+    @PatchMapping("/{employeeId}/edit")
+    fun updateEmployee(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable employeeId: Long,
+        @Valid @RequestBody request: EmployeeUpdateRequest
+    ): ResponseEntity<EmployeeResponse> {
+        return ResponseEntity.ok(employeeService.updateEmployee(user.userId, employeeId, request))
+    }
+
+    @PatchMapping("/{employeeId}/deactivate")
+    fun deactivateEmployee(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable employeeId: Long
+    ): ResponseEntity<EmployeeResponse> {
+        return ResponseEntity.ok(employeeService.deactivateEmployee(user.userId, employeeId))
+    }
+
+    @DeleteMapping("/{employeeId}")
+    fun deleteEmployee(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @PathVariable employeeId: Long
+    ): ResponseEntity<Void> {
+        employeeService.deleteEmployee(user.userId, employeeId)
+        return ResponseEntity.noContent().build()
     }
 
     @GetMapping("/{employeeId}/services")

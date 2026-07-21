@@ -2,17 +2,17 @@ package co.com.kronifyapis.service
 
 import co.com.kronifyapis.dto.user.UserChangePasswordRequest
 import co.com.kronifyapis.dto.user.UserChangePasswordResponse
+import co.com.kronifyapis.dto.user.UserProfileResponse
 import co.com.kronifyapis.dto.user.UserUpdateRequest
 import co.com.kronifyapis.dto.user.UserUpdateResponse
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.InvalidCredentialsException
 import co.com.kronifyapis.exception.ResourceNotFoundException
-import co.com.kronifyapis.exception.TypeErrorException
 import co.com.kronifyapis.model.User
 import co.com.kronifyapis.repository.UserRepository
-import jakarta.transaction.Transactional
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 
 @Service
@@ -31,6 +31,21 @@ class UserService(
         return userRepository.save(user).toResponse()
     }
 
+    private fun User.toProfileResponse(): UserProfileResponse {
+        return UserProfileResponse(
+            userId = requireNotNull(userId),
+            name = name,
+            lastName = lastName,
+            phoneNumber = phoneNumber,
+            email = email,
+
+            profileType = profileType,
+            active = active,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
+    }
+
     private fun User.toResponse(): UserUpdateResponse {
         return UserUpdateResponse(
             name = name,
@@ -38,6 +53,13 @@ class UserService(
             phoneNumber = phoneNumber,
             updatedAt = updatedAt,
         )
+    }
+
+    @Transactional(readOnly = true)
+    fun getProfile(userId: Long): UserProfileResponse {
+        val user = userRepository.findByUserId(userId)
+            ?: throw ResourceNotFoundException("Usuario no encontrado")
+        return user.toProfileResponse()
     }
 
     @Transactional

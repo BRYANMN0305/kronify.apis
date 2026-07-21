@@ -38,22 +38,9 @@ class BusinessController(private val businessService: BusinessService) {
     fun updateBusiness(
         @AuthenticationPrincipal user: AuthenticatedUser,
         @Valid
-        @RequestBody request: BusinessCreateRequest
+        @RequestBody request: BusinessUpdateRequest
     ): ResponseEntity<BusinessUpdateResponse> {
-        val updatedBusiness = businessService.updateBusiness(
-            user.userId,
-            BusinessUpdateRequest(
-                name = request.name,
-                category = request.category,
-                description = request.description,
-                address = request.address,
-                logoUrl = request.logoUrl,
-                email = request.email,
-                phoneNumber = request.phoneNumber,
-                whatsApp = request.whatsApp,
-                ownerWorksAsEmployee = request.ownerWorksAsEmployee
-            )
-        )
+        val updatedBusiness = businessService.updateBusiness(user.userId, request)
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(updatedBusiness)

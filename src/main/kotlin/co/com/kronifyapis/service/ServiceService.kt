@@ -10,8 +10,8 @@ import co.com.kronifyapis.model.Service as ServiceEntity
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.ServiceRepository
 import co.com.kronifyapis.repository.UserRepository
-import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ServiceService(
