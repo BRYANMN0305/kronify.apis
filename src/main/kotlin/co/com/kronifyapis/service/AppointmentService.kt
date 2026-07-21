@@ -1,10 +1,8 @@
 package co.com.kronifyapis.service
 
 import co.com.kronifyapis.dto.appointment.AppointmentCreateRequest
-import co.com.kronifyapis.model.enums.AppointmentOrigin
 import co.com.kronifyapis.dto.appointment.AppointmentRescheduleRequest
 import co.com.kronifyapis.dto.appointment.AppointmentResponse
-import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.dto.appointment.AppointmentStatusUpdateRequest
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ConflictException
@@ -14,9 +12,10 @@ import co.com.kronifyapis.model.Appointment
 import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.Customer
 import co.com.kronifyapis.model.Employee
+import co.com.kronifyapis.model.enums.AppointmentOrigin
+import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.repository.AppointmentRepository
 import co.com.kronifyapis.repository.BusinessRepository
-import co.com.kronifyapis.utils.ProfileValidationHelper
 import co.com.kronifyapis.repository.CustomerRepository
 import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.EmployeeServiceRepository
@@ -24,6 +23,7 @@ import co.com.kronifyapis.repository.ScheduleBlockRepository
 import co.com.kronifyapis.repository.ServiceRepository
 import co.com.kronifyapis.repository.UserRepository
 import co.com.kronifyapis.repository.WeeklyScheduleRepository
+import co.com.kronifyapis.utils.ProfileValidationHelper
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -79,24 +79,28 @@ class AppointmentService(
             profileValidationHelper.requireClient(userId)
         }
 
-        val business = businessRepository.findById(businessId)
+        businessRepository.findById(businessId)
             .orElseThrow { ResourceNotFoundException("Negocio no encontrado") }
+            .takeIf { it.active }
+            ?: throw ResourceNotFoundException("Negocio no encontrado")
 
         val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(request.employeeId, businessId)
             ?: throw BadRequestException("El empleado no pertenece a este negocio")
 
         validateEmployeeActive(employee)
 
-        return createAppointment(businessId, request, employee, AppointmentOrigin.PUBLIC)
+        return createAppointment(businessId, request, employee, AppointmentOrigin.PUBLIC, userId)
     }
 
     private fun createAppointment(
         businessId: Long,
         request: AppointmentCreateRequest,
         employee: Employee,
-        origin: AppointmentOrigin
+        origin: AppointmentOrigin,
+        clientUserId: Long? = null
     ): AppointmentResponse {
         val service = serviceRepository.findByServiceIdAndBusinessBusinessId(request.serviceId, businessId)
+            ?.takeIf { it.active }
             ?: throw BadRequestException("El servicio no pertenece a este negocio")
 
         if (!employeeServiceRepository.existsByEmployeeAndService(employee, service)) {
@@ -105,7 +109,7 @@ class AppointmentService(
 
         planService.validateAppointmentLimit(businessId)
 
-        val customer = resolveCustomer(request, employee.business!!)
+        val customer = resolveCustomer(request, origin, clientUserId)
 
         val startAt = request.startAt
         val endAt = startAt.plusMinutes(service.durationMinutes.toLong())
@@ -114,21 +118,13 @@ class AppointmentService(
             throw BadRequestException("La hora de inicio debe ser anterior a la hora de fin")
         }
 
-        val dayOfWeek = startAt.dayOfWeek.value % 7
-        val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeek(employee, dayOfWeek)
-        if (weeklySchedule == null) {
-            throw BadRequestException("El empleado no tiene horario configurado para este día")
-        }
-        val startTime = startAt.toLocalTime()
-        val endTime = endAt.toLocalTime()
-        if (startTime.isBefore(weeklySchedule.startTime) || endTime.isAfter(weeklySchedule.endTime)) {
-            throw BadRequestException("La cita está fuera del horario laboral del empleado")
-        }
+        validateWithinWeeklySchedule(employee, startAt, endAt)
 
         val overlappingAppointments = appointmentRepository
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
                 employee.employeeId!!, endAt, startAt
             )
+            .filter { it.status != AppointmentStatus.CANCELLED && it.status != AppointmentStatus.NO_SHOW }
         if (overlappingAppointments.isNotEmpty()) {
             throw ConflictException("El empleado ya tiene una cita en este horario")
         }
@@ -236,22 +232,14 @@ class AppointmentService(
         val service = appointment.service!!
         val newEndAt = request.startAt.plusMinutes(service.durationMinutes.toLong())
 
-        val dayOfWeek = request.startAt.dayOfWeek.value % 7
-        val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeek(employee, dayOfWeek)
-        if (weeklySchedule == null) {
-            throw BadRequestException("El empleado no tiene horario configurado para este día")
-        }
-        val startTime = request.startAt.toLocalTime()
-        val endTime = newEndAt.toLocalTime()
-        if (startTime.isBefore(weeklySchedule.startTime) || endTime.isAfter(weeklySchedule.endTime)) {
-            throw BadRequestException("La cita está fuera del horario laboral del empleado")
-        }
+        validateWithinWeeklySchedule(employee, request.startAt, newEndAt)
 
         val overlappingAppointments = appointmentRepository
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
                 employee.employeeId!!, newEndAt, request.startAt
             )
             .filter { it.appointmentId != appointmentId }
+            .filter { it.status != AppointmentStatus.CANCELLED && it.status != AppointmentStatus.NO_SHOW }
         if (overlappingAppointments.isNotEmpty()) {
             throw ConflictException("El empleado ya tiene una cita en este horario")
         }
@@ -281,7 +269,7 @@ class AppointmentService(
         }
 
         if (appointment.status == AppointmentStatus.CANCELLED || appointment.status == AppointmentStatus.COMPLETED) {
-            throw BadRequestException("La cita ya está cancelada o completada")
+            throw BadRequestException("La cita ya esta cancelada o completada")
         }
 
         appointment.status = AppointmentStatus.CANCELLED
@@ -294,50 +282,95 @@ class AppointmentService(
         return saved.toResponse(service.name, service.durationMinutes, employee, customer)
     }
 
-    private fun resolveCustomer(request: AppointmentCreateRequest, business: Business): Customer {
+    private fun resolveCustomer(
+        request: AppointmentCreateRequest,
+        origin: AppointmentOrigin,
+        clientUserId: Long?
+    ): Customer {
+        if (origin == AppointmentOrigin.PUBLIC && request.customerId != null) {
+            throw BadRequestException("customerId no se permite en reservas publicas")
+        }
+
+        if (origin == AppointmentOrigin.PUBLIC && clientUserId != null) {
+            val user = profileValidationHelper.requireClient(clientUserId)
+            return customerRepository.findByUser_UserId(clientUserId)
+                ?: customerRepository.save(
+                    Customer(
+                        user = user,
+                        name = request.customerName ?: user.name,
+                        lastName = request.customerLastName ?: user.lastName,
+                        phoneNumber = request.customerPhone ?: user.phoneNumber,
+                        email = request.customerEmail ?: user.email
+                    )
+                )
+        }
+
         if (request.customerId != null) {
             return customerRepository.findById(request.customerId)
                 .orElseThrow { BadRequestException("Cliente no encontrado") }
         }
 
-        if (request.customerEmail != null) {
-            val existingByEmail = customerRepository.findByEmail(request.customerEmail.trim().lowercase())
+        validateGuestCustomerData(request)
+
+        request.customerEmail?.trim()?.lowercase()?.takeIf { it.isNotBlank() }?.let { email ->
+            val existingByEmail = customerRepository.findByEmail(email)
             if (existingByEmail.isNotEmpty()) {
                 val existing = existingByEmail.first()
-                var updated = false
-                if (request.customerName != null) {
-                    existing.name = request.customerName; updated = true
-                }
-                if (request.customerLastName != null) {
-                    existing.lastName = request.customerLastName; updated = true
-                }
-                if (request.customerPhone != null) {
-                    existing.phoneNumber = request.customerPhone; updated = true
-                }
-                if (updated) return customerRepository.save(existing)
-                return existing
+                existing.name = request.customerName!!.trim()
+                existing.lastName = request.customerLastName?.trim()
+                existing.phoneNumber = request.customerPhone!!.trim()
+                existing.email = email
+                return customerRepository.save(existing)
             }
         }
 
-        if (request.customerPhone != null) {
-            val existingByPhone = customerRepository.findByPhoneNumber(request.customerPhone.trim())
-            if (existingByPhone.isNotEmpty()) {
-                return existingByPhone.first()
-            }
+        val phone = request.customerPhone!!.trim()
+        val existingByPhone = customerRepository.findByPhoneNumber(phone)
+        if (existingByPhone.isNotEmpty()) {
+            val existing = existingByPhone.first()
+            existing.name = request.customerName!!.trim()
+            existing.lastName = request.customerLastName?.trim()
+            existing.email = request.customerEmail?.trim()
+            return customerRepository.save(existing)
         }
 
         val customer = Customer(
-            name = request.customerName,
-            lastName = request.customerLastName,
-            phoneNumber = request.customerPhone,
-            email = request.customerEmail
+            name = request.customerName!!.trim(),
+            lastName = request.customerLastName?.trim(),
+            phoneNumber = phone,
+            email = request.customerEmail?.trim()?.lowercase()
         )
         return customerRepository.save(customer)
     }
 
+    private fun validateGuestCustomerData(request: AppointmentCreateRequest) {
+        if (request.customerName.isNullOrBlank()) {
+            throw BadRequestException("customerName es requerido para reservas de invitados")
+        }
+
+        if (request.customerPhone.isNullOrBlank()) {
+            throw BadRequestException("customerPhone es requerido para reservas de invitados")
+        }
+    }
+
+    private fun validateWithinWeeklySchedule(employee: Employee, startAt: LocalDateTime, endAt: LocalDateTime) {
+        if (startAt.toLocalDate() != endAt.toLocalDate()) {
+            throw BadRequestException("La cita esta fuera del horario laboral del empleado")
+        }
+
+        val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeek(employee, startAt.dayOfWeek.value)
+            ?: throw BadRequestException("El empleado no tiene horario configurado para este dia")
+
+        val startTime = startAt.toLocalTime()
+        val endTime = endAt.toLocalTime()
+        if (startTime.isBefore(weeklySchedule.startTime) || endTime.isAfter(weeklySchedule.endTime)) {
+            throw BadRequestException("La cita esta fuera del horario laboral del empleado")
+        }
+    }
+
     private fun validateEmployeeActive(employee: Employee) {
         if (!employee.active) {
-            throw BadRequestException("El empleado no está activo")
+            throw BadRequestException("El empleado no esta activo")
         }
     }
 
@@ -348,7 +381,7 @@ class AppointmentService(
             ?: employeeRepository.findAllByUser_UserId(userId)
                 .firstOrNull()
                 ?.business
-            ?: throw ResourceNotFoundException("No se encontró un negocio asociado al usuario")
+            ?: throw ResourceNotFoundException("No se encontro un negocio asociado al usuario")
     }
 
     private fun findAppointmentOrThrow(businessId: Long, appointmentId: Long): Appointment {

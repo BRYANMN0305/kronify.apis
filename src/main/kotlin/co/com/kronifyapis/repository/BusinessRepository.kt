@@ -11,8 +11,12 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface BusinessRepository: JpaRepository<Business, Long> {
 
+    fun findByBusinessId(businessId: Long): Business?
+
     //Busca un negocio por su dueño
     fun findByOwner(owner: User): Business?
+
+    fun findBusinessBySlug(slug: String): Business?
 
     //Verifica que exista un negocio por su slug
     fun existsBusinessBySlug (slug: String): Boolean
