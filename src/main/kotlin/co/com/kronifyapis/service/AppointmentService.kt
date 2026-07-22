@@ -1,5 +1,6 @@
 package co.com.kronifyapis.service
 
+import co.com.kronifyapis.dto.appointment.AppointmentAutofillResponse
 import co.com.kronifyapis.dto.appointment.AppointmentCreateRequest
 import co.com.kronifyapis.dto.appointment.AppointmentRescheduleRequest
 import co.com.kronifyapis.dto.appointment.AppointmentResponse
@@ -50,6 +51,21 @@ class AppointmentService(
             AppointmentStatus.COMPLETED -> false
             AppointmentStatus.NO_SHOW -> false
         }
+    }
+
+    @Transactional(readOnly = true)
+    fun getBookingAutofill(userId: Long): AppointmentAutofillResponse {
+        val user = profileValidationHelper.requireClient(userId)
+        val customer = customerRepository.findByUser_UserId(userId)
+
+        return AppointmentAutofillResponse(
+            userId = user.userId!!,
+            customerId = customer?.customerId,
+            name = customer?.name ?: user.name,
+            lastName = customer?.lastName ?: user.lastName,
+            phoneNumber = customer?.phoneNumber ?: user.phoneNumber,
+            email = customer?.email ?: user.email
+        )
     }
 
     @Transactional
@@ -293,16 +309,21 @@ class AppointmentService(
 
         if (origin == AppointmentOrigin.PUBLIC && clientUserId != null) {
             val user = profileValidationHelper.requireClient(clientUserId)
-            return customerRepository.findByUser_UserId(clientUserId)
-                ?: customerRepository.save(
-                    Customer(
-                        user = user,
-                        name = request.customerName ?: user.name,
-                        lastName = request.customerLastName ?: user.lastName,
-                        phoneNumber = request.customerPhone ?: user.phoneNumber,
-                        email = request.customerEmail ?: user.email
-                    )
+            val existing = customerRepository.findByUser_UserId(clientUserId)
+            if (existing != null) {
+                mergeRegisteredCustomer(existing, request)
+                return customerRepository.save(existing)
+            }
+
+            return customerRepository.save(
+                Customer(
+                    user = user,
+                    name = request.customerName?.trim()?.takeIf { it.isNotBlank() } ?: user.name,
+                    lastName = request.customerLastName?.trim()?.takeIf { it.isNotBlank() } ?: user.lastName,
+                    phoneNumber = request.customerPhone?.trim()?.takeIf { it.isNotBlank() } ?: user.phoneNumber,
+                    email = request.customerEmail?.trim()?.lowercase()?.takeIf { it.isNotBlank() } ?: user.email
                 )
+            )
         }
 
         if (request.customerId != null) {
@@ -351,6 +372,13 @@ class AppointmentService(
         if (request.customerPhone.isNullOrBlank()) {
             throw BadRequestException("customerPhone es requerido para reservas de invitados")
         }
+    }
+
+    private fun mergeRegisteredCustomer(customer: Customer, request: AppointmentCreateRequest) {
+        request.customerName?.trim()?.takeIf { it.isNotBlank() }?.let { customer.name = it }
+        request.customerLastName?.trim()?.takeIf { it.isNotBlank() }?.let { customer.lastName = it }
+        request.customerPhone?.trim()?.takeIf { it.isNotBlank() }?.let { customer.phoneNumber = it }
+        request.customerEmail?.trim()?.lowercase()?.takeIf { it.isNotBlank() }?.let { customer.email = it }
     }
 
     private fun validateWithinWeeklySchedule(employee: Employee, startAt: LocalDateTime, endAt: LocalDateTime) {
