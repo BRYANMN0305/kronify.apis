@@ -96,40 +96,32 @@ class AvailabilityService(
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(employee.employeeId!!, dayEnd, dayStart)
             .filter { it.status != AppointmentStatus.CANCELLED && it.status != AppointmentStatus.NO_SHOW }
 
-        val busyRanges = blocks.map { it.startAt to it.endAt } +
-                busyAppointments.map { it.startAt to it.endAt }
-
-        val employeeName = "${employee.user?.name ?: ""} ${employee.user?.lastName ?: ""}".trim()
-        val durationMinutes = service.durationMinutes.toLong()
-        val now = LocalDateTime.now()
-
-        val slots = mutableListOf<TimeSlotResponse>()
-        var candidateStart = LocalDateTime.of(date, schedule.startTime)
-        val windowEnd = LocalDateTime.of(date, schedule.endTime)
-
-        while (true) {
-            val candidateEnd = candidateStart.plusMinutes(durationMinutes)
-            if (candidateEnd.isAfter(windowEnd)) break
-
-            val isPast = candidateStart.isBefore(now)
-            val overlapsBusy = busyRanges.any { (busyStart, busyEnd) ->
-                candidateStart.isBefore(busyEnd) && candidateEnd.isAfter(busyStart)
-            }
-
-            if (!isPast && !overlapsBusy) {
-                slots.add(
-                    TimeSlotResponse(
-                        employeeId = employee.employeeId!!,
-                        employeeName = employeeName,
-                        startAt = candidateStart,
-                        endAt = candidateEnd
-                    )
-                )
-            }
-
-            candidateStart = candidateStart.plusMinutes(slotStepMinutes)
+        val busyIntervals = blocks.map {
+            BusyInterval(it.startAt.toLocalTime(), it.endAt.toLocalTime())
+        } + busyAppointments.map {
+            BusyInterval(it.startAt.toLocalTime(), it.endAt.toLocalTime())
         }
 
-        return slots
+        val employeeName = "${employee.user?.name ?: ""} ${employee.user?.lastName ?: ""}".trim()
+        val now = LocalDateTime.now()
+
+        return AvailabilityCalculator.calculateAvailableSlots(
+            workingStart = schedule.startTime,
+            workingEnd = schedule.endTime,
+            durationMinutes = service.durationMinutes,
+            busyIntervals = busyIntervals,
+            stepMinutes = slotStepMinutes.toInt()
+        )
+            .map { startTime ->
+                val startAt = LocalDateTime.of(date, startTime)
+                val endAt = startAt.plusMinutes(service.durationMinutes.toLong())
+                TimeSlotResponse(
+                    employeeId = employee.employeeId!!,
+                    employeeName = employeeName,
+                    startAt = startAt,
+                    endAt = endAt
+                )
+            }
+            .filter { !it.startAt.isBefore(now) }
     }
 }
