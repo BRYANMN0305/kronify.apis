@@ -27,6 +27,7 @@ import co.com.kronifyapis.repository.WeeklyScheduleRepository
 import co.com.kronifyapis.utils.ProfileValidationHelper
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
@@ -173,6 +174,58 @@ class AppointmentService(
         val businessId = business.businessId!!
 
         return appointmentRepository.findAllByBusiness_BusinessId(businessId).map { appointment ->
+            val service = appointment.service!!
+            val employee = appointment.employee!!
+            val customer = appointment.customer!!
+            appointment.toResponse(service.name, service.durationMinutes, employee, customer)
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getEmployeeAgenda(
+        userId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        employeeId: Long?
+    ): List<AppointmentResponse> {
+        if (endDate.isBefore(startDate)) {
+            throw BadRequestException("endDate debe ser igual o posterior a startDate")
+        }
+
+        val business = findUserBusiness(userId)
+        val businessId = business.businessId!!
+        val user = userRepository.findByUserId(userId)
+            ?: throw ResourceNotFoundException("Usuario no encontrado")
+        val requestingEmployee = employeeRepository.findByUserAndBusiness(user, business)
+        val canViewAll = business.owner?.userId == userId || requestingEmployee?.owner == true
+
+        val targetEmployeeId = employeeId ?: if (canViewAll) null else requestingEmployee?.employeeId
+            ?: throw ForbiddenOperationException("No tiene permiso para ver la agenda de este negocio")
+
+        if (targetEmployeeId != null) {
+            val targetEmployee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(targetEmployeeId, businessId)
+                ?: throw ResourceNotFoundException("Empleado no encontrado")
+
+            if (!canViewAll && targetEmployee.user?.userId != userId) {
+                throw ForbiddenOperationException("No tiene permiso para ver la agenda de otro empleado")
+            }
+        }
+
+        val startAt = startDate.atStartOfDay()
+        val endAt = endDate.plusDays(1).atStartOfDay()
+        val appointments = if (targetEmployeeId != null) {
+            appointmentRepository
+                .findAllByBusiness_BusinessIdAndEmployee_EmployeeIdAndStartAtGreaterThanEqualAndStartAtLessThanOrderByStartAtAsc(
+                    businessId, targetEmployeeId, startAt, endAt
+                )
+        } else {
+            appointmentRepository
+                .findAllByBusiness_BusinessIdAndStartAtGreaterThanEqualAndStartAtLessThanOrderByStartAtAsc(
+                    businessId, startAt, endAt
+                )
+        }
+
+        return appointments.map { appointment ->
             val service = appointment.service!!
             val employee = appointment.employee!!
             val customer = appointment.customer!!
