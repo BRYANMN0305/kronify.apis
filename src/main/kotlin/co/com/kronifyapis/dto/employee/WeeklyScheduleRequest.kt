@@ -12,8 +12,8 @@ import java.time.LocalTime
 
 data class WeeklyScheduleRequest(
     @field:NotNull
-    @field:Min(1, message = "El día debe estar entre 1 (lunes) y 7 (domingo)")
-    @field:Max(7, message = "El día debe estar entre 1 (lunes) y 7 (domingo)")
+    @field:Min(1, message = "El día debe estar entre 1 = lunes y 7 = domingo")
+    @field:Max(7, message = "El día debe estar entre 1 = lunes y 7 = domingo")
     val dayOfWeek: Int,
 
     @field:NotNull

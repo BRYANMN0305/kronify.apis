@@ -13,6 +13,9 @@ import co.com.kronifyapis.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+/**
+ * Servicio para gestionar los servicios que ofrece un negocio.
+ */
 @Service
 class ServiceService(
     private val serviceRepository: ServiceRepository,
@@ -21,6 +24,10 @@ class ServiceService(
     private val planService: PlanService,
 ) {
 
+    /**
+     * Crea un nuevo servicio para el negocio.
+     * Valida que no exista otro con el mismo nombre y que el plan permita crear mas.
+     */
     @Transactional
     fun createService(userId: Long, request: ServiceRequest): ServiceResponse {
         val business = findOwnedBusiness(userId)
@@ -44,6 +51,9 @@ class ServiceService(
         return createdService.toResponse()
     }
 
+    /**
+     * Lista todos los servicios del negocio del usuario.
+     */
     @Transactional
     fun listServices(userId: Long): List<ServiceResponse> {
         val business = findOwnedBusiness(userId)
@@ -51,6 +61,9 @@ class ServiceService(
             .map { it.toResponse() }
     }
 
+    /**
+     * Obtiene un servicio especifico por su ID.
+     */
     @Transactional
     fun getService(userId: Long, serviceId: Long): ServiceResponse {
         val business = findOwnedBusiness(userId)
@@ -59,6 +72,9 @@ class ServiceService(
         return service.toResponse()
     }
 
+    /**
+     * Actualiza los datos de un servicio existente.
+     */
     @Transactional
     fun updateService(userId: Long, serviceId: Long, request: ServiceRequest): ServiceResponse {
         val business = findOwnedBusiness(userId)
@@ -79,6 +95,9 @@ class ServiceService(
         return serviceRepository.save(service).toResponse()
     }
 
+    /**
+     * Elimina un servicio del negocio.
+     */
     @Transactional
     fun deleteService(userId: Long, serviceId: Long) {
         val business = findOwnedBusiness(userId)
@@ -87,6 +106,9 @@ class ServiceService(
         serviceRepository.delete(service)
     }
 
+    /**
+     * Busca el negocio del usuario. Solo el dueno puede administrar servicios.
+     */
     private fun findOwnedBusiness(userId: Long): Business {
         val user = userRepository.findByUserId(userId)
             ?: throw ResourceNotFoundException("Usuario no encontrado")
@@ -94,6 +116,9 @@ class ServiceService(
             ?: throw ForbiddenOperationException("Solo el dueño puede administrar los servicios")
     }
 
+    /**
+     * Convierte la entidad Service a ServiceResponse para devolver al frontend.
+     */
     private fun ServiceEntity.toResponse(): ServiceResponse {
         return ServiceResponse(
             id = requireNotNull(serviceId),

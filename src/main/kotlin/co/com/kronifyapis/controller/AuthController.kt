@@ -14,10 +14,16 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 
+/**
+ * Controlador para el registro e inicio de sesión de usuarios.
+ */
 @RestController
 @RequestMapping("/auth")
 class AuthController (private val authService: AuthService){
 
+    /**
+     * Registra un usuario nuevo en la plataforma.
+     */
     @PostMapping("/register")
     fun register(@Valid @RequestBody request: UserRegisterRequest) : ResponseEntity<UserResponse> {
         return ResponseEntity
@@ -25,6 +31,9 @@ class AuthController (private val authService: AuthService){
         .body(authService.register(request))
     }
 
+    /**
+     * Inicia sesión con correo y contraseña.
+     */
     @PostMapping("/login")
     fun login(@Valid @RequestBody request: LoginRequest) : ResponseEntity<TokenResponse> {
         return ResponseEntity

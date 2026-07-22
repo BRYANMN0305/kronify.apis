@@ -23,6 +23,12 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.time.YearMonth
 
+/**
+ * Servicio que maneja los planes de suscripcion de los negocios.
+ * Crea los planes FREE y PRO al iniciar, asigna planes a negocios,
+ * y valida los limites de servicios, citas y empleados segun el plan.
+ */
+
 @Service
 class PlanService(
     private val planRepository: PlanRepository,
@@ -35,6 +41,10 @@ class PlanService(
     private val profileValidationHelper: ProfileValidationHelper
 ) {
 
+    /**
+     * Al iniciar la app, si no hay planes creados, crea los planes
+     * FREE (con limites) y PRO (sin limites).
+     */
     @PostConstruct
     fun initPlans() {
         if (planRepository.count() == 0L) {
@@ -58,6 +68,9 @@ class PlanService(
     }
 
 
+    /**
+     * Asigna el plan FREE a un negocio cuando se crea.
+     */
     @Transactional
     fun assignFreePlanOnCreate(businessId: Long) {
         val freePlan = planRepository.findByName("FREE")
@@ -76,6 +89,9 @@ class PlanService(
         )
     }
 
+    /**
+     * Cambia el plan de un negocio. Desactiva el plan actual y asigna el nuevo.
+     */
     @Transactional
     fun assignPlan(userId: Long, request: AssignPlanRequest): BusinessPlanResponse {
         val user = profileValidationHelper.requireBusiness(userId)
@@ -105,6 +121,9 @@ class PlanService(
         return newPlan.toResponse()
     }
 
+    /**
+     * Obtiene el plan actual del negocio del usuario con el uso que lleva
+     */
     @Transactional(readOnly = true)
     fun getCurrentPlan(userId: Long): BusinessPlanUsageResponse {
         val user = userRepository.findByUserId(userId)
@@ -116,6 +135,10 @@ class PlanService(
         return getBusinessPlanUsage(business.businessId!!)
     }
 
+    /**
+     * Calcula el uso del plan para un negocio: cuantos servicios tiene,
+     * cuantas citas lleva este mes y cuantos empleados, y si ya llego al limite.
+     */
     @Transactional(readOnly = true)
     fun getBusinessPlanUsage(businessId: Long): BusinessPlanUsageResponse {
         val businessPlan = businessPlanRepository.findByBusiness_BusinessIdAndActiveTrue(businessId)
@@ -157,6 +180,10 @@ class PlanService(
         )
     }
 
+    /**
+     * Valida que el negocio no haya superado el limite de servicios del plan.
+     * Si no hay limite (plan PRO), deja pasar.
+     */
     fun validateServiceLimit(businessId: Long) {
         val businessPlan = businessPlanRepository.findActiveWithLock(businessId)
             ?: return
@@ -170,6 +197,10 @@ class PlanService(
         }
     }
 
+    /**
+     * Valida que el negocio no haya superado el limite mensual de citas del plan.
+     * Cuenta solo las citas no canceladas ni no-show.
+     */
     fun validateAppointmentLimit(businessId: Long) {
         val businessPlan = businessPlanRepository.findActiveWithLock(businessId)
             ?: return
@@ -189,6 +220,9 @@ class PlanService(
         }
     }
 
+    /**
+     * Valida que el negocio no haya superado el limite de empleados del plan.
+     */
     fun validateEmployeeLimit(businessId: Long) {
         val businessPlan = businessPlanRepository.findActiveWithLock(businessId)
             ?: return

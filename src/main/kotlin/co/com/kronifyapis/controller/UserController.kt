@@ -18,6 +18,10 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+/**
+ * Controlador para que el usuario autenticado gestione su propia cuenta.
+ */
+
 @RestController
 @RequestMapping("/user")
 class UserController(
@@ -25,6 +29,9 @@ class UserController(
     private val authService: AuthService
 ) {
 
+    /**
+     * Devuelve el perfil del usuario autenticado.
+     */
     @GetMapping("/profile")
     fun getProfile(
         @AuthenticationPrincipal user: AuthenticatedUser
@@ -32,6 +39,9 @@ class UserController(
         return ResponseEntity.ok(userService.getProfile(user.userId))
     }
 
+    /**
+     * Actualiza los datos del perfil del usuario autenticado.
+     */
     @PatchMapping("/update")
     fun updateUser(
         @AuthenticationPrincipal user: AuthenticatedUser,
@@ -41,6 +51,9 @@ class UserController(
         return ResponseEntity.ok(updatedUser)
     }
 
+    /**
+     * Cambia la contraseña del usuario autenticado.
+     */
     @PatchMapping("/updatePassword")
     fun updatePassword(
         @AuthenticationPrincipal user: AuthenticatedUser,
@@ -50,6 +63,9 @@ class UserController(
         return ResponseEntity.ok(changedPassword)
     }
 
+    /**
+     * Lista los métodos de autenticación vinculados a la cuenta
+     */
     @GetMapping("/auth-methods")
     fun linkedAuthMethods(
         @AuthenticationPrincipal user: AuthenticatedUser

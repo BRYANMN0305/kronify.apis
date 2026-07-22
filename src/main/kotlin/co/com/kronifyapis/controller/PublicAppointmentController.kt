@@ -17,12 +17,18 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+/**
+ * Controlador público para la gestión de citas desde el lado del cliente.
+ */
 @RestController
 @RequestMapping("/appointments")
 class PublicAppointmentController(
     private val appointmentService: AppointmentService
 ) {
 
+    /**
+     * Obtiene información de autocompletado para agendar una cita
+     */
     @GetMapping("/autofill")
     fun getAutofill(
         @AuthenticationPrincipal user: AuthenticatedUser
@@ -30,11 +36,15 @@ class PublicAppointmentController(
         return ResponseEntity.ok(appointmentService.getBookingAutofill(user.userId))
     }
 
+    /**
+     * Crea una cita como cliente. No requiere autenticación.
+     */
     @PostMapping("/")
     fun createAppointment(
         @Valid @RequestBody request: AppointmentCreateRequest,
         @AuthenticationPrincipal user: AuthenticatedUser?
     ): ResponseEntity<AppointmentResponse> {
+        // businessId es obligatorio para identificar a qué negocio se agenda
         val businessId = request.businessId
             ?: throw BadRequestException("businessId es requerido")
 
@@ -42,6 +52,9 @@ class PublicAppointmentController(
             .body(appointmentService.createAppointmentByClient(user?.userId, businessId, request))
     }
 
+    /**
+     * Cancela una cita propia del cliente autenticado.
+     */
     @PostMapping("/cancel/{appointmentId}")
     fun cancelOwnAppointment(
         @AuthenticationPrincipal user: AuthenticatedUser,

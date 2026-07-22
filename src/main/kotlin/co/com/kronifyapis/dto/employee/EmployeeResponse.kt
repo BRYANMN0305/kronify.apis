@@ -4,7 +4,6 @@ import java.time.LocalDateTime
 
 /**
  * DTO que devuelve la información de un empleado.
- * Incluye datos personales del usuario y su configuración dentro del negocio.
  */
 
 data class EmployeeResponse(

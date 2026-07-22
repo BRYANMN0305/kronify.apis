@@ -8,10 +8,15 @@ import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.EmployeeServiceRepository
 import co.com.kronifyapis.repository.ServiceRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.stereotype.Service as SpringService
 
-@Service
+/**
+ * Servicio publico que cualquiera puede consultar sin autenticacion.
+ * Devuelve la informacion de un negocio
+ * para mostrarla en la pagina publica del negocio.
+ */
+
+@SpringService
 class PublicBusinessService(
     private val businessRepository: BusinessRepository,
     private val serviceRepository: ServiceRepository,
@@ -19,7 +24,11 @@ class PublicBusinessService(
     private val employeeServiceRepository: EmployeeServiceRepository
 ) {
 
-    @Transactional(readOnly = true)
+    /**
+     * Busca un negocio por su slug y devuelve
+     * toda la info publica
+     * con los IDs de servicios que ofrece cada uno.
+     */
     fun getPublicBusinessBySlug(slug: String): PublicBusinessResponse {
         val business = businessRepository.findBusinessBySlug(slug)
             ?.takeIf { it.active }

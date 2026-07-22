@@ -13,6 +13,10 @@ import org.springframework.stereotype.Service
 import java.util.Date
 import javax.crypto.SecretKey
 
+/**
+ * Servicio para manejar tokens JWT: los genera, los valida,
+ * y extrae informacion del usuario autenticado.
+ */
 @Service
 class JwtService(
     @param:Value("\${app.jwt.secret}") private val secret: String,
@@ -25,6 +29,9 @@ class JwtService(
         Keys.hmacShaKeyFor(secret.toByteArray(Charsets.UTF_8))
     }
 
+    /**
+     * Genera un token JWT para un usuario.
+     */
     fun generateToken(user: User): String {
         val now = Date()
         val expiration = Date(now.time + expirationMinutes * 60_000)
@@ -49,12 +56,22 @@ class JwtService(
             .compact()
     }
 
+    /**
+     * Devuelve los segundos hasta que el token expire.
+     */
     fun getExpirationSeconds(): Long = expirationMinutes * 60
 
+    /**
+     * Extrae el email del token JWT.
+     */
     fun extractEmail(token: String): String? {
         return extractAllClaims(token)?.get("email", String::class.java)
     }
 
+    /**
+     * Extrae todos los datos del usuario autenticado desde el token JWT.
+     * Si algo falla o el token es invalido, devuelve null.
+     */
     fun extractAuthenticatedUser(token: String): AuthenticatedUser? {
         val claims = extractAllClaims(token) ?: return null
         val userId = claims.subject ?: return null
@@ -77,6 +94,9 @@ class JwtService(
         }
     }
 
+    /**
+     * Verifica si un token JWT es valido.
+     */
     fun isTokenValid(token: String): Boolean {
         return try {
             extractAllClaims(token) != null && !isTokenExpired(token)

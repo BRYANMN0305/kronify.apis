@@ -15,11 +15,17 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 
+/**
+ * Servicio para gestionar datos del usuario.
+ */
 @Service
 class UserService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder
 ) {
+    /**
+     * Actualiza los datos de perfil del usuario.
+     */
     @Transactional
     fun updateUser(userId: Long, request: UserUpdateRequest): UserUpdateResponse {
         val user =
@@ -55,6 +61,9 @@ class UserService(
         )
     }
 
+    /**
+     * Obtiene el perfil completo del usuario.
+     */
     @Transactional(readOnly = true)
     fun getProfile(userId: Long): UserProfileResponse {
         val user = userRepository.findByUserId(userId)
@@ -62,6 +71,10 @@ class UserService(
         return user.toProfileResponse()
     }
 
+    /**
+     * Cambia la contrasena del usuario. Primero verifica que la contrasena
+     * actual sea correcta antes de actualizarla.
+     */
     @Transactional
     fun changePassword(userId: Long, request: UserChangePasswordRequest): UserChangePasswordResponse {
         val user = userRepository.findByUserId(userId)
