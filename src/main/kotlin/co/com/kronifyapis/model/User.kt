@@ -55,6 +55,9 @@ data class User(
     @Column(name = "password_hash")
     var passwordHash: String = "",
 
+    @Column(name = "verified_email", nullable = false)
+    var verifiedEmail: Boolean = false,
+
     @Column(name = "active", nullable = false)
     var active: Boolean = true,
 
