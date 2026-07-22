@@ -188,6 +188,27 @@ class AppointmentService(
         endDate: LocalDate,
         employeeId: Long?
     ): List<AppointmentResponse> {
+        return getCalendarAppointments(
+            userId = userId,
+            startDate = startDate,
+            endDate = endDate,
+            employeeId = employeeId,
+            serviceId = null,
+            status = null,
+            origin = null
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getCalendarAppointments(
+        userId: Long,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        employeeId: Long?,
+        serviceId: Long?,
+        status: AppointmentStatus?,
+        origin: AppointmentOrigin?
+    ): List<AppointmentResponse> {
         if (endDate.isBefore(startDate)) {
             throw BadRequestException("endDate debe ser igual o posterior a startDate")
         }
@@ -225,12 +246,18 @@ class AppointmentService(
                 )
         }
 
-        return appointments.map { appointment ->
+        return appointments
+            .asSequence()
+            .filter { appointment -> serviceId == null || appointment.service?.serviceId == serviceId }
+            .filter { appointment -> status == null || appointment.status == status }
+            .filter { appointment -> origin == null || appointment.origin == origin }
+            .map { appointment ->
             val service = appointment.service!!
             val employee = appointment.employee!!
             val customer = appointment.customer!!
             appointment.toResponse(service.name, service.durationMinutes, employee, customer)
         }
+            .toList()
     }
 
     @Transactional(readOnly = true)
