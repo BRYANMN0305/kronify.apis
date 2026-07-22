@@ -52,6 +52,7 @@ class AvailabilityService(
             throw BadRequestException("La fecha debe ser hoy o en el futuro")
         }
 
+        // Primero filtro empleados validos para este servicio; asi no se muestran horarios de alguien que no lo atiende.
         val candidateEmployees = resolveCandidateEmployees(business.businessId!!, service, employeeId)
 
         val slots = candidateEmployees
@@ -96,6 +97,7 @@ class AvailabilityService(
         val schedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeek(employee, dayOfWeek)
             ?: return emptyList()
 
+        // Para calcular disponibilidad del dia completo, junto bloqueos manuales y citas ya tomadas.
         val dayStart = LocalDateTime.of(date, LocalTime.MIDNIGHT)
         val dayEnd = dayStart.plusDays(1)
 
@@ -115,6 +117,7 @@ class AvailabilityService(
         val employeeName = "${employee.user?.name ?: ""} ${employee.user?.lastName ?: ""}".trim()
         val now = LocalDateTime.now()
 
+        // El calculator recibe solo horas del dia; despues convierto cada hora disponible a fecha/hora real.
         return AvailabilityCalculator.calculateAvailableSlots(
             workingStart = schedule.startTime,
             workingEnd = schedule.endTime,
