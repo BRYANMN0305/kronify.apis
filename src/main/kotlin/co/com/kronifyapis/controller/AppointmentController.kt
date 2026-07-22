@@ -5,6 +5,8 @@ import co.com.kronifyapis.dto.appointment.AppointmentRescheduleRequest
 import co.com.kronifyapis.dto.appointment.AppointmentResponse
 import co.com.kronifyapis.dto.appointment.AppointmentStatusUpdateRequest
 import co.com.kronifyapis.dto.auth.AuthenticatedUser
+import co.com.kronifyapis.model.enums.AppointmentOrigin
+import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.service.AppointmentService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -47,10 +49,21 @@ class AppointmentController(
         @AuthenticationPrincipal user: AuthenticatedUser,
         @RequestParam startDate: LocalDate,
         @RequestParam endDate: LocalDate,
-        @RequestParam(required = false) employeeId: Long?
+        @RequestParam(required = false) employeeId: Long?,
+        @RequestParam(required = false) serviceId: Long?,
+        @RequestParam(required = false) status: AppointmentStatus?,
+        @RequestParam(required = false) origin: AppointmentOrigin?
     ): ResponseEntity<List<AppointmentResponse>> {
         return ResponseEntity.ok(
-            appointmentService.getEmployeeAgenda(user.userId, startDate, endDate, employeeId)
+            appointmentService.getCalendarAppointments(
+                userId = user.userId,
+                startDate = startDate,
+                endDate = endDate,
+                employeeId = employeeId,
+                serviceId = serviceId,
+                status = status,
+                origin = origin
+            )
         )
     }
 
