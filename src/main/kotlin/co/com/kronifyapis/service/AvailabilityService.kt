@@ -5,7 +5,7 @@ import co.com.kronifyapis.dto.availability.TimeSlotResponse
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.Employee
-import co.com.kronifyapis.model.Service
+import co.com.kronifyapis.model.Service as BusinessServiceModel
 import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.repository.AppointmentRepository
 import co.com.kronifyapis.repository.BusinessRepository
@@ -14,12 +14,13 @@ import co.com.kronifyapis.repository.EmployeeServiceRepository
 import co.com.kronifyapis.repository.ScheduleBlockRepository
 import co.com.kronifyapis.repository.ServiceRepository
 import co.com.kronifyapis.repository.WeeklyScheduleRepository
-import org.springframework.stereotype.Service as SpringService
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
-@SpringService
+@Service
 class AvailabilityService(
     private val businessRepository: BusinessRepository,
     private val serviceRepository: ServiceRepository,
@@ -32,6 +33,7 @@ class AvailabilityService(
 
     private val slotStepMinutes = 15L
 
+    @Transactional(readOnly = true)
     fun getAvailability(
         businessId: Long,
         serviceId: Long,
@@ -64,7 +66,11 @@ class AvailabilityService(
         )
     }
 
-    private fun resolveCandidateEmployees(businessId: Long, service: Service, employeeId: Long?): List<Employee> {
+    private fun resolveCandidateEmployees(
+        businessId: Long,
+        service: BusinessServiceModel,
+        employeeId: Long?
+    ): List<Employee> {
         if (employeeId != null) {
             val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
                 ?.takeIf { it.active }
@@ -81,7 +87,11 @@ class AvailabilityService(
             .filter { employeeServiceRepository.existsByEmployeeAndService(it, service) }
     }
 
-    private fun computeSlotsForEmployee(employee: Employee, service: Service, date: LocalDate): List<TimeSlotResponse> {
+    private fun computeSlotsForEmployee(
+        employee: Employee,
+        service: BusinessServiceModel,
+        date: LocalDate
+    ): List<TimeSlotResponse> {
         val dayOfWeek = date.dayOfWeek.value
         val schedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeek(employee, dayOfWeek)
             ?: return emptyList()

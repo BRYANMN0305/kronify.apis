@@ -8,9 +8,10 @@ import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.EmployeeServiceRepository
 import co.com.kronifyapis.repository.ServiceRepository
-import org.springframework.stereotype.Service as SpringService
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
-@SpringService
+@Service
 class PublicBusinessService(
     private val businessRepository: BusinessRepository,
     private val serviceRepository: ServiceRepository,
@@ -18,6 +19,7 @@ class PublicBusinessService(
     private val employeeServiceRepository: EmployeeServiceRepository
 ) {
 
+    @Transactional(readOnly = true)
     fun getPublicBusinessBySlug(slug: String): PublicBusinessResponse {
         val business = businessRepository.findBusinessBySlug(slug)
             ?.takeIf { it.active }
