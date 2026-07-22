@@ -16,12 +16,19 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+/**
+ * Controlador para gestionar invitaciones de empleados.
+ */
+
 @RestController
 @RequestMapping("/business/invitations")
 class EmployeeInvitationController(
     private val invitationService: EmployeeInvitationService
 ) {
 
+    /**
+     * Crea una invitación para que un empleado se una al negocio.
+     */
     @PostMapping("/")
     fun createInvitation(
         @AuthenticationPrincipal user: AuthenticatedUser,
@@ -31,6 +38,9 @@ class EmployeeInvitationController(
             .body(invitationService.createInvitation(user.userId, request.email))
     }
 
+    /**
+     * Lista todas las invitaciones enviadas por el negocio.
+     */
     @GetMapping("/")
     fun listInvitations(
         @AuthenticationPrincipal user: AuthenticatedUser
@@ -38,6 +48,9 @@ class EmployeeInvitationController(
         return ResponseEntity.ok(invitationService.listInvitations(user.userId))
     }
 
+    /**
+     * Reenvía una invitación que ya había sido creada.
+     */
     @PostMapping("/{invitationId}/resend")
     fun resendInvitation(
         @AuthenticationPrincipal user: AuthenticatedUser,
@@ -46,6 +59,9 @@ class EmployeeInvitationController(
         return ResponseEntity.ok(invitationService.resendInvitation(user.userId, invitationId))
     }
 
+    /**
+     * Cancela una invitación pendiente.
+     */
     @PostMapping("/{invitationId}/cancel")
     fun cancelInvitation(
         @AuthenticationPrincipal user: AuthenticatedUser,
@@ -54,6 +70,9 @@ class EmployeeInvitationController(
         return ResponseEntity.ok(invitationService.cancelInvitation(user.userId, invitationId))
     }
 
+    /**
+     * Acepta una invitación usando el token enviado por correo.
+     */
     @PostMapping("/accept")
     fun acceptInvitation(
         @AuthenticationPrincipal user: AuthenticatedUser,

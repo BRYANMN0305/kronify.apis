@@ -30,6 +30,11 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 
+/**
+ * Servicio que maneja todo el ciclo de las citas.
+ * Desde crear, listar, reprogramar hasta cancelar citas, ya sea que las haga
+ * el negocio (privado) o un cliente desde la página pública.
+ */
 @Service
 class AppointmentService(
     private val appointmentRepository: AppointmentRepository,
@@ -44,6 +49,11 @@ class AppointmentService(
     private val planService: PlanService,
     private val profileValidationHelper: ProfileValidationHelper
 ) {
+    /**
+     * Revisa si se puede cambiar una cita de un estado a otro.
+     * Por ejemplo, una cita PENDING puede pasar a CONFIRMED o CANCELLED,
+     * pero una CANCELLED ya no se puede cambiar a nada mas.
+     */
     private fun isAllowedTransition(current: AppointmentStatus, next: AppointmentStatus): Boolean {
         return when (current) {
             AppointmentStatus.PENDING -> next == AppointmentStatus.CONFIRMED || next == AppointmentStatus.CANCELLED
@@ -54,6 +64,10 @@ class AppointmentService(
         }
     }
 
+    /**
+     * Obtiene los datos del usuario autenticado para auto-completar
+     * el formulario de reserva. Sirve para no tener que escribir todo otra vez.
+     */
     @Transactional(readOnly = true)
     fun getBookingAutofill(userId: Long): AppointmentAutofillResponse {
         val user = profileValidationHelper.requireClient(userId)
@@ -69,6 +83,10 @@ class AppointmentService(
         )
     }
 
+    /**
+     * Crea una cita desde el panel del negocio (privado).
+     * Valida que el empleado pertenezca al negocio y que el usuario tenga permiso.
+     */
     @Transactional
     fun createAppointmentByBusiness(
         userId: Long,
@@ -86,6 +104,10 @@ class AppointmentService(
         return createAppointment(businessId, request, employee, AppointmentOrigin.PRIVATE)
     }
 
+    /**
+     * Crea una cita desde la pagina publica del negocio (cliente).
+     * Si el usuario no ha iniciado sesion, se maneja como invitado.
+     */
     @Transactional
     fun createAppointmentByClient(
         userId: Long?,
@@ -109,6 +131,11 @@ class AppointmentService(
         return createAppointment(businessId, request, employee, AppointmentOrigin.PUBLIC, userId)
     }
 
+    /**
+     * Metodo interno que hace la logica pesada de crear una cita:
+     * valida el servicio, el horario, que no se cruce con otras citas,
+     * que no haya bloqueos, y guarda todo en la base de datos.
+     */
     private fun createAppointment(
         businessId: Long,
         request: AppointmentCreateRequest,
@@ -168,6 +195,10 @@ class AppointmentService(
         return saved.toResponse(service.name, service.durationMinutes, employee, customer)
     }
 
+    /**
+     * Lista todas las citas de un negocio. Usa el userId para
+     * encontrar el negocio asociado.
+     */
     @Transactional(readOnly = true)
     fun listAppointments(userId: Long): List<AppointmentResponse> {
         val business = findUserBusiness(userId)
@@ -181,6 +212,11 @@ class AppointmentService(
         }
     }
 
+    /**
+     * Obtiene la agenda de uno o varios empleados en un rango de fechas.
+     * Si no se pasa employeeId y el usuario es dueno, ve la agenda de todos.
+     * Los empleados normales solo ven su propia agenda.
+     */
     @Transactional(readOnly = true)
     fun getEmployeeAgenda(
         userId: Long,
@@ -233,6 +269,10 @@ class AppointmentService(
         }
     }
 
+    /**
+     * Obtiene los detalles de una cita especifica.
+     * Verifica que la cita pertenezca al negocio del usuario.
+     */
     @Transactional(readOnly = true)
     fun getAppointment(userId: Long, appointmentId: Long): AppointmentResponse {
         val appointment = appointmentRepository.findById(appointmentId)
@@ -249,6 +289,11 @@ class AppointmentService(
         return appointment.toResponse(service.name, service.durationMinutes, employee, customer)
     }
 
+    /**
+     * Cambia el estado de una cita (ej: de PENDING a CONFIRMED).
+     * Solo permite transiciones validas (isAllowedTransition).
+     * Si se cancela, guarda el motivo de cancelacion.
+     */
     @Transactional
     fun updateAppointmentStatus(
         userId: Long,
@@ -278,6 +323,10 @@ class AppointmentService(
         return saved.toResponse(service.name, service.durationMinutes, emp, customer)
     }
 
+    /**
+     * Reprograma una cita para una nueva fecha/hora.
+     * Vuelve a validar horarios, cruces y bloqueos como si fuera una cita nueva.
+     */
     @Transactional
     fun rescheduleAppointment(
         userId: Long,
@@ -328,6 +377,10 @@ class AppointmentService(
         return saved.toResponse(service.name, service.durationMinutes, employee, customer)
     }
 
+    /**
+     * Permite que un cliente cancele su propia cita desde la pagina publica.
+     * Solo puede cancelar citas que le pertenezcan.
+     */
     @Transactional
     fun cancelOwnAppointment(userId: Long, appointmentId: Long): AppointmentResponse {
         val appointment = appointmentRepository.findById(appointmentId)
@@ -351,6 +404,12 @@ class AppointmentService(
         return saved.toResponse(service.name, service.durationMinutes, employee, customer)
     }
 
+    /**
+     * Decide quien es el cliente de la cita segun el origen:
+     * - Si es publico y hay usuario logueado, busca o crea el Customer.
+     * - Si es privado, usa el customerId que mandaron.
+     * - Si es invitado, valida datos minimos y crea un Customer nuevo.
+     */
     private fun resolveCustomer(
         request: AppointmentCreateRequest,
         origin: AppointmentOrigin,
@@ -417,6 +476,10 @@ class AppointmentService(
         return customerRepository.save(customer)
     }
 
+    /**
+     * Valida que un cliente invitado tenga nombre y telefono,
+     * porque son obligatorios para crear la cita sin registro.
+     */
     private fun validateGuestCustomerData(request: AppointmentCreateRequest) {
         if (request.customerName.isNullOrBlank()) {
             throw BadRequestException("customerName es requerido para reservas de invitados")
@@ -427,6 +490,10 @@ class AppointmentService(
         }
     }
 
+    /**
+     * Actualiza los datos de un cliente registrado si en la reserva
+     * mandaron informacion nueva (nombre, telefono, etc.).
+     */
     private fun mergeRegisteredCustomer(customer: Customer, request: AppointmentCreateRequest) {
         request.customerName?.trim()?.takeIf { it.isNotBlank() }?.let { customer.name = it }
         request.customerLastName?.trim()?.takeIf { it.isNotBlank() }?.let { customer.lastName = it }
@@ -434,6 +501,10 @@ class AppointmentService(
         request.customerEmail?.trim()?.lowercase()?.takeIf { it.isNotBlank() }?.let { customer.email = it }
     }
 
+    /**
+     * Revisa que la cita caiga dentro del horario laboral del empleado
+     * para ese dia de la semana. Si no hay horario configurado, truena.
+     */
     private fun validateWithinWeeklySchedule(employee: Employee, startAt: LocalDateTime, endAt: LocalDateTime) {
         if (startAt.toLocalDate() != endAt.toLocalDate()) {
             throw BadRequestException("La cita esta fuera del horario laboral del empleado")
@@ -449,12 +520,18 @@ class AppointmentService(
         }
     }
 
+    /**
+     * Verifica que el empleado este activo antes de asignarle una cita.
+     */
     private fun validateEmployeeActive(employee: Employee) {
         if (!employee.active) {
             throw BadRequestException("El empleado no esta activo")
         }
     }
 
+    /**
+     * Busca el negocio asociado a un usuario, ya sea como dueno o como empleado.
+     */
     private fun findUserBusiness(userId: Long): Business {
         val user = userRepository.findByUserId(userId)
             ?: throw ResourceNotFoundException("Usuario no encontrado")
@@ -465,11 +542,19 @@ class AppointmentService(
             ?: throw ResourceNotFoundException("No se encontro un negocio asociado al usuario")
     }
 
+    /**
+     * Busca una cita por ID y negocio, y si no existe lanza un error.
+     */
     private fun findAppointmentOrThrow(businessId: Long, appointmentId: Long): Appointment {
         return appointmentRepository.findByAppointmentIdAndBusiness_BusinessId(appointmentId, businessId)
             ?: throw ResourceNotFoundException("Cita no encontrada")
     }
 
+    /**
+     * Verifica que el usuario tenga permiso para gestionar citas:
+     * el dueno del negocio siempre puede, el empleado tambien si es el mismo,
+     * y si es otro empleado, debe tener permisos de administrador (owner).
+     */
     private fun ensureUserCanManageAppointments(userId: Long, business: Business, employee: Employee) {
         val isOwner = business.owner?.userId == userId
         val isTargetEmployee = employee.user?.userId == userId
@@ -484,17 +569,27 @@ class AppointmentService(
         }
     }
 
+    /**
+     * Revisa si el usuario es el dueno del negocio o el empleado de la cita.
+     */
     private fun isOwnerOrTargetEmployee(userId: Long, business: Business, employee: Employee): Boolean {
         val isOwner = business.owner?.userId == userId
         val isTargetEmployee = employee.user?.userId == userId
         return isOwner || isTargetEmployee
     }
 
+    /**
+     * Revisa si el usuario es el dueno de la cita (el cliente que la reservo).
+     */
     private fun isClientOwner(userId: Long, appointment: Appointment): Boolean {
         val customer = appointment.customer ?: return false
         return customer.user?.userId == userId
     }
 
+    /**
+     * Convierte el modelo Appointment a un AppointmentResponse
+     * listo para devolver al frontend con todos los datos.
+     */
     private fun Appointment.toResponse(
         serviceName: String,
         serviceDurationMinutes: Int,

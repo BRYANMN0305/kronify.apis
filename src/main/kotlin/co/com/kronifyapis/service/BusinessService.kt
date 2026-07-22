@@ -19,6 +19,9 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 
+/**
+ * Servicio para gestionar negocios
+ */
 @Service
 class BusinessService(
     private val businessRepository: BusinessRepository,
@@ -28,6 +31,11 @@ class BusinessService(
     private val profileValidationHelper: ProfileValidationHelper
 ) {
 
+    /**
+     * Crea un negocio nuevo. Valida que el slug sea unico,
+     * que el usuario no tenga ya un negocio, y asigna el plan FREE.
+     * Si el dueno quiere trabajar como empleado, lo crea automaticamente.
+     */
     @Transactional
     fun createBusiness(ownerId: Long, request: BusinessCreateRequest): BusinessCreateResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
@@ -83,6 +91,9 @@ class BusinessService(
         )
     }
 
+    /**
+     * Obtiene la configuracion actual del negocio (nombre, direccion, etc.).
+     */
     @Transactional(readOnly = true)
     fun getBusinessSettings(ownerId: Long): BusinessSettingsResponse {
         val ownerUser = userRepository.findByUserId(ownerId)
@@ -94,6 +105,10 @@ class BusinessService(
         return business.toSettingsResponse()
     }
 
+    /**
+     * Actualiza los datos del negocio: nombre, categoria, descripcion,
+     * direccion, logo, email, telefono y WhatsApp.
+     */
     @Transactional
     fun updateBusiness(ownerId: Long, request: BusinessUpdateRequest): BusinessUpdateResponse {
         val ownerUser = userRepository.findByUserId(ownerId)

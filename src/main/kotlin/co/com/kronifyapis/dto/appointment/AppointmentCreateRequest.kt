@@ -9,8 +9,8 @@ import java.time.LocalDateTime
 /**
  * DTO que recibe los datos para crear una nueva cita.
  * Si el cliente no está registrado, se envían sus datos en los campos
- * customerName, customerLastName, customerPhone y customerEmail.
- */
+ * correspondientes.
+ * */
 
 data class AppointmentCreateRequest(
 

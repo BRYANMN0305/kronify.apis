@@ -14,11 +14,19 @@ import co.com.kronifyapis.repository.EmployeeServiceRepository
 import co.com.kronifyapis.repository.ScheduleBlockRepository
 import co.com.kronifyapis.repository.ServiceRepository
 import co.com.kronifyapis.repository.WeeklyScheduleRepository
+import co.com.kronifyapis.service.AvailabilityCalculator
+import co.com.kronifyapis.service.BusyInterval
 import org.springframework.stereotype.Service as SpringService
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
+/**
+ * Servicio que consulta la disponibilidad de un negocio para un servicio y fecha especificos.
+ * Revisa horarios laborales, citas existentes y bloqueos para decirte
+ * que horarios estan libres.
+ */
 @SpringService
 class AvailabilityService(
     private val businessRepository: BusinessRepository,
@@ -32,6 +40,11 @@ class AvailabilityService(
 
     private val slotStepMinutes = 15L
 
+    /**
+     * Obtiene los horarios disponibles para un servicio en una fecha.
+     * Si se pasa employeeId, solo muestra slots para ese empleado;
+     * si no, muestra de todos los empleados que ofrecen el servicio.
+     */
     fun getAvailability(
         businessId: Long,
         serviceId: Long,
@@ -64,6 +77,11 @@ class AvailabilityService(
         )
     }
 
+    /**
+     * Filtra los empleados que pueden realizar el servicio:
+     * si se pidio un empleado especifico, solo ese; si no, todos los activos
+     * que tengan el servicio asignado.
+     */
     private fun resolveCandidateEmployees(businessId: Long, service: Service, employeeId: Long?): List<Employee> {
         if (employeeId != null) {
             val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
@@ -81,6 +99,13 @@ class AvailabilityService(
             .filter { employeeServiceRepository.existsByEmployeeAndService(it, service) }
     }
 
+    /**
+     * Calcula los slots disponibles para un empleado en una fecha:
+     * - Obtiene el horario laboral de ese dia
+     * - Busca bloqueos y citas ocupadas
+     * - Usa AvailabilityCalculator para generar los espacios libres
+     * - Filtra los slots que ya pasaron (no se puede agendar en pasado)
+     */
     private fun computeSlotsForEmployee(employee: Employee, service: Service, date: LocalDate): List<TimeSlotResponse> {
         val dayOfWeek = date.dayOfWeek.value
         val schedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeek(employee, dayOfWeek)

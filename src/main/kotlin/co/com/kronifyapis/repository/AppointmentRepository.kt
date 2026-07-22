@@ -42,6 +42,13 @@ interface AppointmentRepository : JpaRepository<Appointment, Long> {
         startAt: LocalDateTime
     ): List<Appointment>
 
+    //Busca citas futuras por servicio (para validar soft delete)
+    fun findByServiceServiceIdAndStartAtGreaterThanEqualAndStatusIn(
+        serviceId: Long,
+        startAt: LocalDateTime,
+        statuses: List<AppointmentStatus>
+    ): List<Appointment>
+
     //Cuenta citas por negocio, rango de fechas y estado
     fun countByBusiness_BusinessIdAndStartAtGreaterThanEqualAndStartAtLessThanAndStatusNotIn(
         businessId: Long,
