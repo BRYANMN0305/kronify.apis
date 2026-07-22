@@ -56,6 +56,7 @@ class AppointmentService(
 
     @Transactional(readOnly = true)
     fun getBookingAutofill(userId: Long): AppointmentAutofillResponse {
+        // El autocompletado solo aplica para clientes; el negocio no debe reservar como cliente registrado.
         val user = profileValidationHelper.requireClient(userId)
         val customer = customerRepository.findByUser_UserId(userId)
 
@@ -124,6 +125,7 @@ class AppointmentService(
             throw BadRequestException("El empleado no tiene asignado este servicio")
         }
 
+        // Antes de crear la cita valido limites del plan y resuelvo si el cliente es invitado o registrado.
         planService.validateAppointmentLimit(businessId)
 
         val customer = resolveCustomer(request, origin, clientUserId)
@@ -137,6 +139,7 @@ class AppointmentService(
 
         validateWithinWeeklySchedule(employee, startAt, endAt)
 
+        // Evito doble reserva: una cita cancelada o marcada como no asistida ya no bloquea ese horario.
         val overlappingAppointments = appointmentRepository
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
                 employee.employeeId!!, endAt, startAt
@@ -220,6 +223,7 @@ class AppointmentService(
         val requestingEmployee = employeeRepository.findByUserAndBusiness(user, business)
         val canViewAll = business.owner?.userId == userId || requestingEmployee?.owner == true
 
+        // Si no es dueno/admin del negocio, solo puede consultar su propia agenda como empleado.
         val targetEmployeeId = employeeId ?: if (canViewAll) null else requestingEmployee?.employeeId
             ?: throw ForbiddenOperationException("No tiene permiso para ver la agenda de este negocio")
 
@@ -248,6 +252,7 @@ class AppointmentService(
 
         return appointments
             .asSequence()
+            // Estos filtros hacen que el mismo endpoint sirva para agenda y calendario del negocio.
             .filter { appointment -> serviceId == null || appointment.service?.serviceId == serviceId }
             .filter { appointment -> status == null || appointment.status == status }
             .filter { appointment -> origin == null || appointment.origin == origin }
@@ -391,6 +396,7 @@ class AppointmentService(
             val user = profileValidationHelper.requireClient(clientUserId)
             val existing = customerRepository.findByUser_UserId(clientUserId)
             if (existing != null) {
+                // Si el cliente ya existe, actualizo solo los datos que envio en esta reserva.
                 mergeRegisteredCustomer(existing, request)
                 return customerRepository.save(existing)
             }
@@ -411,6 +417,7 @@ class AppointmentService(
                 .orElseThrow { BadRequestException("Cliente no encontrado") }
         }
 
+        // Para invitados pido datos minimos porque no hay cuenta de usuario de donde tomarlos.
         validateGuestCustomerData(request)
 
         request.customerEmail?.trim()?.lowercase()?.takeIf { it.isNotBlank() }?.let { email ->

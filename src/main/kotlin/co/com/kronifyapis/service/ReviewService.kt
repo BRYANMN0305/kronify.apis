@@ -34,6 +34,7 @@ class ReviewService(
 
     @Transactional
     fun createReview(userId: Long, request: ReviewCreateRequest): ReviewResponse {
+        // Solo un cliente registrado puede dejar resena; los invitados no tienen usuario para validar propiedad.
         profileValidationHelper.requireClient(userId)
 
         val customer = customerRepository.findByUser_UserId(userId)
@@ -46,6 +47,7 @@ class ReviewService(
             throw ForbiddenOperationException("No puede reseñar una cita que no le pertenece")
         }
 
+        // La resena queda amarrada a una cita completada para evitar opiniones sin servicio realizado.
         if (appointment.status != AppointmentStatus.COMPLETED) {
             throw BadRequestException("Solo se pueden reseñar citas completadas")
         }
@@ -73,6 +75,7 @@ class ReviewService(
             ?.takeIf { it.active }
             ?: throw ResourceNotFoundException("Negocio no encontrado")
 
+        // En la pagina publica solo muestro resenas visibles; el negocio puede ocultar alguna si hace falta.
         return reviewRepository
             .findAllByAppointment_Business_BusinessIdAndVisibleTrueOrderByCreatedAtDesc(business.businessId!!)
             .map { it.toResponse() }
