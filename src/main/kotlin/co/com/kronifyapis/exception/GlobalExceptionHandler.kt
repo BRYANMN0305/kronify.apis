@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 @RestControllerAdvice
 class GlobalExceptionHandler {
 
+    private val log = org.slf4j.LoggerFactory.getLogger(javaClass)
+
     @ExceptionHandler(InvalidCredentialsException::class)
     fun handleInvalidCredentials(
         ex: InvalidCredentialsException,
@@ -76,6 +78,7 @@ class GlobalExceptionHandler {
         ex: Exception,
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
+        log.error("Error no controlado en {}: {}", request.requestURI, ex.message, ex)
         return buildResponse(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "Ocurrió un error inesperado, error del servidor",

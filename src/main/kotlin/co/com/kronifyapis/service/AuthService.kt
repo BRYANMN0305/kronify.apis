@@ -23,6 +23,11 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 
+/**
+ * Servicio de autenticacion: registra usuarios, inicia sesion,
+ * consulta metodos de autenticacion vinculados y enlaza invitaciones
+ * pendientes cuando alguien se registra.
+ */
 @Service
 class AuthService(
     private val userRepository: UserRepository,
@@ -33,6 +38,12 @@ class AuthService(
     private val jwtService: JwtService,
     private val planService: PlanService
 ) {
+    /**
+     * Registra un usuario nuevo en el sistema.
+     * Valida que el email no exista, que la contrasena tenga al menos 8 caracteres,
+     * y si el usuario es de tipo BUSINESS, revisa si tiene invitacion pendiente
+     * para vincularlo automaticamente como empleado.
+     */
     @Transactional
     fun register(request: UserRegisterRequest): UserResponse {
         val email = request.email.trim().lowercase()
@@ -77,6 +88,10 @@ class AuthService(
         )
     }
 
+    /**
+     * Inicia sesion con email y contrasena.
+     * Si las credenciales son correctas, genera un token JWT y lo devuelve.
+     */
     fun login(request: LoginRequest): TokenResponse {
         val email = request.email.trim().lowercase()
         val user = userRepository.findByEmail(email)
@@ -90,6 +105,10 @@ class AuthService(
         return user.toTokenResponse(token, jwtService.getExpirationSeconds())
     }
 
+    /**
+     * Lista los metodos de autenticacion vinculados a un usuario:
+     * contrasena (password) y cuentas OAuth (Google, etc.).
+     */
     @Transactional(readOnly = true)
     fun listLinkedAuthMethods(userId: Long): List<LinkedAuthMethodResponse> {
         val user = userRepository.findByUserId(userId)
@@ -130,6 +149,11 @@ class AuthService(
         )
     }
 
+    /**
+     * Si el usuario se registro con un email que tiene una invitacion pendiente,
+     * lo vincula automaticamente como empleado del negocio que lo invito.
+     * Si la invitacion ya expiro, la marca como EXPIRED.
+     */
     private fun linkInvitationIfNeeded(user: User) {
         val invitation = employeeInvitationRepository.findFirstByEmailAndStatus(user.email, StatusType.PENDING)
             ?: return

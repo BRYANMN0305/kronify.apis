@@ -32,6 +32,11 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
+/**
+ * Servicio para gestionar empleados de un negocio:
+ * listar, activar/desactivar, eliminar, asignar servicios,
+ * manejar horarios semanales y bloquear horarios.
+ */
 @Service
 class EmployeeService(
     private val employeeRepository: EmployeeRepository,
@@ -44,12 +49,18 @@ class EmployeeService(
     private val appointmentRepository: AppointmentRepository
 ) {
 
+    /**
+     * Lista los empleados activos del negocio del usuario autenticado.
+     */
     @Transactional
     fun listEmployees(userId: Long): List<EmployeeResponse> {
         val business = findOwnedBusiness(userId)
         return employeeRepository.findAllByBusiness_BusinessIdAndActiveTrue(business.businessId!!).map { it.toEmployeeResponse() }
     }
 
+    /**
+     * Cambia el permiso de un empleado para autogestionar su horario.
+     */
     @Transactional
     fun updateEmployeeSchedulePermission(
         userId: Long,
@@ -64,6 +75,10 @@ class EmployeeService(
         return employeeRepository.save(employee).toEmployeeResponse()
     }
 
+    /**
+     * Activa o desactiva al dueno como empleado del negocio.
+     * Sirve para que el dueno pueda aparecer en la agenda y recibir citas.
+     */
     @Transactional
     fun toggleOwnerEmployee(userId: Long, request: OwnerEmployeeToggleRequest): EmployeeResponse {
         val business = findOwnedBusiness(userId)
@@ -93,6 +108,10 @@ class EmployeeService(
         return employeeRepository.save(employee).toEmployeeResponse()
     }
 
+    /**
+     * Actualiza los datos de un empleado.
+     * Si se desactiva, revisa que no tenga citas futuras pendientes.
+     */
     @Transactional
     fun updateEmployee(
         userId: Long,
@@ -123,6 +142,9 @@ class EmployeeService(
         return employeeRepository.save(employee).toEmployeeResponse()
     }
 
+    /**
+     * Desactiva un empleado. Verifica que no tenga citas futuras primero.
+     */
     @Transactional
     fun deactivateEmployee(userId: Long, employeeId: Long): EmployeeResponse {
         val business = findOwnedBusiness(userId)
@@ -150,6 +172,10 @@ class EmployeeService(
         return employeeRepository.save(employee).toEmployeeResponse()
     }
 
+    /**
+     * Elimina un empleado del negocio (borra horarios, bloqueos y relaciones).
+     * No se puede eliminar al dueno ni a alguien ya inactivo.
+     */
     @Transactional
     fun deleteEmployee(userId: Long, employeeId: Long) {
         val business = findOwnedBusiness(userId)
@@ -178,6 +204,9 @@ class EmployeeService(
         employeeRepository.delete(employee)
     }
 
+    /**
+     * Lista los servicios que un empleado tiene asignados.
+     */
     @Transactional(readOnly = true)
     fun listEmployeeServices(userId: Long, employeeId: Long): List<ServiceResponse> {
         val business = findOwnedBusiness(userId)
@@ -189,6 +218,10 @@ class EmployeeService(
             .map { it.toServiceResponse() }
     }
 
+    /**
+     * Reemplaza los servicios que puede realizar un empleado.
+     * Agrega los nuevos y deja los existentes.
+     */
     @Transactional
     fun updateEmployeeServices(
         userId: Long,
@@ -225,6 +258,9 @@ class EmployeeService(
             .map { it.toServiceResponse() }
     }
 
+    /**
+     * Quita un servicio especifico de la lista de un empleado.
+     */
     @Transactional
     fun removeServiceFromEmployee(userId: Long, employeeId: Long, serviceId: Long) {
         val business = findOwnedBusiness(userId)
@@ -240,12 +276,19 @@ class EmployeeService(
         employeeServiceRepository.delete(employeeService)
     }
 
+    /**
+     * Lista los horarios semanales configurados para un empleado.
+     */
     @Transactional(readOnly = true)
     fun listWeeklySchedules(userId: Long, employeeId: Long): List<WeeklyScheduleResponse> {
         val employee = ensureCanManageOrSelfManage(userId, employeeId)
         return weeklyScheduleRepository.findAllByEmployee(employee).map { it.toResponse() }
     }
 
+    /**
+     * Crea o actualiza el horario de un empleado para un dia de la semana.
+     * Valida que la hora de inicio sea menor a la de fin.
+     */
     @Transactional
     fun upsertWeeklySchedule(
         userId: Long,
@@ -275,6 +318,9 @@ class EmployeeService(
         return saved.toResponse()
     }
 
+    /**
+     * Elimina el horario semanal de un empleado para un dia especifico.
+     */
     @Transactional
     fun deleteWeeklySchedule(userId: Long, employeeId: Long, weeklyScheduleId: Long) {
         val employee = ensureCanManageOrSelfManage(userId, employeeId)
@@ -286,12 +332,19 @@ class EmployeeService(
         weeklyScheduleRepository.delete(weeklySchedule)
     }
 
+    /**
+     * Lista los bloqueos de horario de un empleado (dias/horas no disponibles).
+     */
     @Transactional(readOnly = true)
     fun listScheduleBlocks(userId: Long, employeeId: Long): List<ScheduleBlockResponse> {
         val employee = ensureCanManageOrSelfManage(userId, employeeId)
         return scheduleBlockRepository.findAllByEmployee(employee).map { it.toResponse() }
     }
 
+    /**
+     * Crea un bloqueo en la agenda del empleado (ej: dia libre, almuerzo).
+     * Revisa que no se cruce con otro bloqueo ni con citas confirmadas/pendientes.
+     */
     @Transactional
     fun createScheduleBlock(
         userId: Long,
@@ -332,6 +385,9 @@ class EmployeeService(
         return saved.toResponse()
     }
 
+    /**
+     * Elimina un bloqueo de horario existente.
+     */
     @Transactional
     fun deleteScheduleBlock(userId: Long, employeeId: Long, scheduleBlockId: Long) {
         val employee = ensureCanManageOrSelfManage(userId, employeeId)

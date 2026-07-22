@@ -14,12 +14,18 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+/**
+ * Controlador para gestionar el plan de suscripción del negocio.
+ */
 @RestController
 @RequestMapping("/business")
 class PlanController(
     private val planService: PlanService
 ) {
 
+    /**
+     * Devuelve el plan actual del negocio junto con el uso de sus límites.
+     */
     @GetMapping("/plan")
     fun getCurrentPlan(
         @AuthenticationPrincipal user: AuthenticatedUser
@@ -27,6 +33,9 @@ class PlanController(
         return ResponseEntity.ok(planService.getCurrentPlan(user.userId))
     }
 
+    /**
+     * Asigna un plan de suscripción al negocio del usuario autenticado.
+     */
     @PostMapping("/plan")
     fun assignPlan(
         @AuthenticationPrincipal user: AuthenticatedUser,

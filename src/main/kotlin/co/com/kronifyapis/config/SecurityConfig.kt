@@ -9,13 +9,27 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+
+/**
+ * Configuración de seguridad de la aplicación.
+ * Define qué rutas son públicas, cuáles requieren autenticación,
+ * y agrega el filtro JWT antes de cualquier otro filtro de seguridad.
+ */
+
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
     private val jwtAuthenticationFilter: JwtAuthenticationFilter
 ) {
+    /**
+     * Bean para codificar contraseñas con BCrypt.
+     */
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
+
+    /**
+     * Configura la cadena de filtros de seguridad
+     */
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http

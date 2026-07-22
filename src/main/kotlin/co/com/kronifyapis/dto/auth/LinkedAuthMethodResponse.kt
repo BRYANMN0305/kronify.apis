@@ -3,8 +3,7 @@ package co.com.kronifyapis.dto.auth
 import java.time.LocalDateTime
 
 /**
- * DTO que devuelve los métodos de autenticación vinculados a un usuario
- * (contraseña y/o proveedores OAuth como Google, Microsoft).
+ * DTO que devuelve los métodos de autenticación vinculados a un usuario.
  */
 data class LinkedAuthMethodResponse(
     val type: String,

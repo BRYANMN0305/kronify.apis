@@ -7,12 +7,20 @@ import org.springframework.stereotype.Service
 import org.thymeleaf.TemplateEngine
 import org.thymeleaf.context.Context
 
+/**
+ * Servicio para enviar correos electronicos.
+ */
+
 @Service
 class EmailService(
     private val mailSender: JavaMailSender,
     private val templateEngine: TemplateEngine,
     @Value("\${app.frontend-url}") private val frontendUrl: String
 ) {
+    /**
+     * Envia un correo de invitacion a un empleado con un link
+     * para que acepte unirse al negocio.
+     */
     fun sendInvitationEmail(to: String, token: String, businessName: String) {
         val link = "$frontendUrl/invitacion/aceptar?token=$token"
 

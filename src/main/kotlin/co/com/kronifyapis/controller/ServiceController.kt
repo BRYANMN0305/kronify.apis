@@ -17,12 +17,19 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+/**
+ * Controlador para gestionar los servicios que ofrece un negocio.
+ */
+
 @RestController
 @RequestMapping("/business/services")
 class ServiceController(
     private val serviceService: ServiceService
 ) {
 
+    /**
+     * Crea un nuevo servicio para el negocio del usuario autenticado.
+     */
     @PostMapping("/")
     fun createService(
         @AuthenticationPrincipal user: AuthenticatedUser,
@@ -32,6 +39,9 @@ class ServiceController(
             .body(serviceService.createService(user.userId, request))
     }
 
+    /**
+     * Lista todos los servicios del negocio.
+     */
     @GetMapping("/")
     fun listServices(
         @AuthenticationPrincipal user: AuthenticatedUser
@@ -39,6 +49,9 @@ class ServiceController(
         return ResponseEntity.ok(serviceService.listServices(user.userId))
     }
 
+    /**
+     * Devuelve los detalles de un servicio específico.
+     */
     @GetMapping("/{serviceId}")
     fun getService(
         @AuthenticationPrincipal user: AuthenticatedUser,
@@ -47,6 +60,9 @@ class ServiceController(
         return ResponseEntity.ok(serviceService.getService(user.userId, serviceId))
     }
 
+    /**
+     * Actualiza los datos de un servicio existente.
+     */
     @PatchMapping("/{serviceId}")
     fun updateService(
         @AuthenticationPrincipal user: AuthenticatedUser,
@@ -56,6 +72,9 @@ class ServiceController(
         return ResponseEntity.ok(serviceService.updateService(user.userId, serviceId, request))
     }
 
+    /**
+     * Elimina un servicio del negocio.
+     */
     @DeleteMapping("/{serviceId}")
     fun deleteService(
         @AuthenticationPrincipal user: AuthenticatedUser,
