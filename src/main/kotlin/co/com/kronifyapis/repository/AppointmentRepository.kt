@@ -19,6 +19,19 @@ interface AppointmentRepository : JpaRepository<Appointment, Long> {
     //Busca todas las citas por negocio y las lista
     fun findAllByBusiness_BusinessId(businessId: Long): List<Appointment>
 
+    fun findAllByBusiness_BusinessIdAndStartAtGreaterThanEqualAndStartAtLessThanOrderByStartAtAsc(
+        businessId: Long,
+        start: LocalDateTime,
+        end: LocalDateTime
+    ): List<Appointment>
+
+    fun findAllByBusiness_BusinessIdAndEmployee_EmployeeIdAndStartAtGreaterThanEqualAndStartAtLessThanOrderByStartAtAsc(
+        businessId: Long,
+        employeeId: Long,
+        start: LocalDateTime,
+        end: LocalDateTime
+    ): List<Appointment>
+
     //Busca una cita por su ID y el ID del negocio al que pertenece
     fun findByAppointmentIdAndBusiness_BusinessId(appointmentId: Long, businessId: Long): Appointment?
 
