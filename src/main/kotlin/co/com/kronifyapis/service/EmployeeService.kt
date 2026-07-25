@@ -455,6 +455,7 @@ class EmployeeService(
             description = description,
             price = price,
             durationMinutes = durationMinutes,
+            bufferMinutes = bufferMinutes,
             active = active,
             createdAt = createdAt
         )

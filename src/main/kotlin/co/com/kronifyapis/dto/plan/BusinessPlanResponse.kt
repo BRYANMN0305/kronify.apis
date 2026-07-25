@@ -1,6 +1,7 @@
 
 package co.com.kronifyapis.dto.plan
 
+import co.com.kronifyapis.model.enums.SubscriptionStatus
 import java.time.LocalDateTime
 
 /**
@@ -10,6 +11,7 @@ import java.time.LocalDateTime
 data class BusinessPlanResponse(
     val plan: PlanResponse,
     val active: Boolean,
+    val subscriptionStatus: SubscriptionStatus,
     val startAt: LocalDateTime?,
     val endAt: LocalDateTime?
 )

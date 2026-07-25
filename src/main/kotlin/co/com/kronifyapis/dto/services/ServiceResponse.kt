@@ -13,6 +13,7 @@ data class ServiceResponse(
     val description: String?,
     val price: Double?,
     val durationMinutes: Int,
+    val bufferMinutes: Int,
     val active: Boolean,
     val createdAt: LocalDateTime
 )

@@ -25,6 +25,8 @@ import co.com.kronifyapis.repository.ServiceRepository
 import co.com.kronifyapis.repository.UserRepository
 import co.com.kronifyapis.repository.WeeklyScheduleRepository
 import co.com.kronifyapis.utils.ProfileValidationHelper
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -159,6 +161,7 @@ class AppointmentService(
 
         val startAt = request.startAt
         val endAt = startAt.plusMinutes(service.durationMinutes.toLong())
+        val occupiedEndAt = endAt.plusMinutes(service.bufferMinutes.toLong())
 
         if (startAt.isAfter(endAt) || startAt.isEqual(endAt)) {
             throw BadRequestException("La hora de inicio debe ser anterior a la hora de fin")
@@ -169,15 +172,16 @@ class AppointmentService(
         // Evito doble reserva: una cita cancelada o marcada como no asistida ya no bloquea ese horario.
         val overlappingAppointments = appointmentRepository
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
-                employee.employeeId!!, endAt, startAt
+                employee.employeeId!!, occupiedEndAt, startAt.minusHours(12)
             )
             .filter { it.status != AppointmentStatus.CANCELLED && it.status != AppointmentStatus.NO_SHOW }
+            .filter { it.occupiedEndAt().isAfter(startAt) && it.startAt.isBefore(occupiedEndAt) }
         if (overlappingAppointments.isNotEmpty()) {
             throw ConflictException("El empleado ya tiene una cita en este horario")
         }
 
         val hasBlock = scheduleBlockRepository.existsByEmployeeAndStartAtLessThanAndEndAtGreaterThan(
-            employee, endAt, startAt
+            employee, occupiedEndAt, startAt
         )
         if (hasBlock) {
             throw ConflictException("El empleado tiene un bloqueo en este horario")
@@ -213,6 +217,30 @@ class AppointmentService(
             val customer = appointment.customer!!
             appointment.toResponse(service.name, service.durationMinutes, employee, customer)
         }
+    }
+
+    @Transactional(readOnly = true)
+    fun listAppointments(userId: Long, pageable: Pageable): Page<AppointmentResponse> {
+        val business = findUserBusiness(userId)
+        return appointmentRepository.findAllByBusiness_BusinessId(business.businessId!!, pageable)
+            .map { appointment ->
+                val service = appointment.service!!
+                val employee = appointment.employee!!
+                val customer = appointment.customer!!
+                appointment.toResponse(service.name, service.durationMinutes, employee, customer)
+            }
+    }
+
+    @Transactional(readOnly = true)
+    fun listClientAppointmentHistory(userId: Long, pageable: Pageable): Page<AppointmentResponse> {
+        profileValidationHelper.requireClient(userId)
+        return appointmentRepository.findAllByCustomer_User_UserIdOrderByStartAtDesc(userId, pageable)
+            .map { appointment ->
+                val service = appointment.service!!
+                val employee = appointment.employee!!
+                val customer = appointment.customer!!
+                appointment.toResponse(service.name, service.durationMinutes, employee, customer)
+            }
     }
 
     /**
@@ -381,21 +409,23 @@ class AppointmentService(
 
         val service = appointment.service!!
         val newEndAt = request.startAt.plusMinutes(service.durationMinutes.toLong())
+        val newOccupiedEndAt = newEndAt.plusMinutes(service.bufferMinutes.toLong())
 
         validateWithinWeeklySchedule(employee, request.startAt, newEndAt)
 
         val overlappingAppointments = appointmentRepository
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
-                employee.employeeId!!, newEndAt, request.startAt
+                employee.employeeId!!, newOccupiedEndAt, request.startAt.minusHours(12)
             )
             .filter { it.appointmentId != appointmentId }
             .filter { it.status != AppointmentStatus.CANCELLED && it.status != AppointmentStatus.NO_SHOW }
+            .filter { it.occupiedEndAt().isAfter(request.startAt) && it.startAt.isBefore(newOccupiedEndAt) }
         if (overlappingAppointments.isNotEmpty()) {
             throw ConflictException("El empleado ya tiene una cita en este horario")
         }
 
         val hasBlock = scheduleBlockRepository.existsByEmployeeAndStartAtLessThanAndEndAtGreaterThan(
-            employee, newEndAt, request.startAt
+            employee, newOccupiedEndAt, request.startAt
         )
         if (hasBlock) {
             throw ConflictException("El empleado tiene un bloqueo en este horario")
@@ -649,5 +679,10 @@ class AppointmentService(
             origin = origin,
             createdAt = createdAt
         )
+    }
+
+    private fun Appointment.occupiedEndAt(): LocalDateTime {
+        val bufferMinutes = service?.bufferMinutes ?: 0
+        return endAt.plusMinutes(bufferMinutes.toLong())
     }
 }

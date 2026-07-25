@@ -21,24 +21,34 @@ class OpenApiConfig {
     @Bean
     fun customOpenAPI(): OpenAPI {
         val bearerSchemeName = "bearerAuth"
+        val apiKeySchemeName = "apiKey"
 
         return OpenAPI()
             .info(
                 Info()
                     .title("Kronify Kotlin API")
                     .version("1.0.0")
-                    .description("API REST para gestion agendas en neogcios con autenticacion JWT")
+                    .description("API REST para gestion agendas en neogcios con autenticacion JWT y API Key para administradores")
             )
             .addSecurityItem(SecurityRequirement().addList(bearerSchemeName))
+            .addSecurityItem(SecurityRequirement().addList(apiKeySchemeName))
             .components(
-                Components().addSecuritySchemes(
-                    bearerSchemeName,
-                    SecurityScheme()
-                        .name(bearerSchemeName)
-                        .type(SecurityScheme.Type.HTTP)
-                        .scheme("bearer")
-                        .bearerFormat("JWT")
-                )
+                Components()
+                    .addSecuritySchemes(
+                        bearerSchemeName,
+                        SecurityScheme()
+                            .name(bearerSchemeName)
+                            .type(SecurityScheme.Type.HTTP)
+                            .scheme("bearer")
+                            .bearerFormat("JWT")
+                    )
+                    .addSecuritySchemes(
+                        apiKeySchemeName,
+                        SecurityScheme()
+                            .name("X-API-Key")
+                            .type(SecurityScheme.Type.APIKEY)
+                            .`in`(SecurityScheme.In.HEADER)
+                    )
             )
     }
 }

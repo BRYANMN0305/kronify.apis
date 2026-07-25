@@ -18,6 +18,8 @@ import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.ReviewRepository
 import co.com.kronifyapis.repository.UserRepository
 import co.com.kronifyapis.utils.ProfileValidationHelper
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -86,6 +88,14 @@ class ReviewService(
         val business = findUserBusiness(userId)
         return reviewRepository
             .findAllByAppointment_Business_BusinessIdOrderByCreatedAtDesc(business.businessId!!)
+            .map { it.toResponse() }
+    }
+
+    @Transactional(readOnly = true)
+    fun listBusinessReviews(userId: Long, pageable: Pageable): Page<ReviewResponse> {
+        val business = findUserBusiness(userId)
+        return reviewRepository
+            .findAllByAppointment_Business_BusinessIdOrderByCreatedAtDesc(business.businessId!!, pageable)
             .map { it.toResponse() }
     }
 

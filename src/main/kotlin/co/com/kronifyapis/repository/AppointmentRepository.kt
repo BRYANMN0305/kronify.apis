@@ -3,6 +3,8 @@ package co.com.kronifyapis.repository
 
 import co.com.kronifyapis.model.Appointment
 import co.com.kronifyapis.model.enums.AppointmentStatus
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -18,6 +20,10 @@ interface AppointmentRepository : JpaRepository<Appointment, Long> {
 
     //Busca todas las citas por negocio y las lista
     fun findAllByBusiness_BusinessId(businessId: Long): List<Appointment>
+
+    fun findAllByBusiness_BusinessId(businessId: Long, pageable: Pageable): Page<Appointment>
+
+    fun findAllByCustomer_User_UserIdOrderByStartAtDesc(userId: Long, pageable: Pageable): Page<Appointment>
 
     fun findAllByBusiness_BusinessIdAndStartAtGreaterThanEqualAndStartAtLessThanOrderByStartAtAsc(
         businessId: Long,

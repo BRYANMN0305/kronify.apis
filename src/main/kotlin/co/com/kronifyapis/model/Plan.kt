@@ -5,6 +5,7 @@ import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.Index
 import jakarta.persistence.Table
 
 /**
@@ -21,7 +22,12 @@ import jakarta.persistence.Table
  */
 
 @Entity
-@Table(name = "plans")
+@Table(
+    name = "plans",
+    indexes = [
+        Index(name = "idx_plans_name", columnList = "name")
+    ]
+)
 data class Plan(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,6 +37,15 @@ data class Plan(
     @Column(name = "name", nullable = false)
     var name: String = "",
 
+    @Column(name = "display_name", nullable = false)
+    var displayName: String = "",
+
+    @Column(name = "description")
+    var description: String? = null,
+
+    @Column(name = "monthly_price_cents", nullable = false)
+    var monthlyPriceCents: Int = 0,
+
     @Column(name = "service_limit")
     var serviceLimit: Int? = null,
 
@@ -38,5 +53,8 @@ data class Plan(
     var monthlyAppointmentLimit: Int? = null,
 
     @Column(name = "employee_limit")
-    var employeeLimit: Int? = null
+    var employeeLimit: Int? = null,
+
+    @Column(name = "requires_activation_code", nullable = false)
+    var requiresActivationCode: Boolean = false
 )

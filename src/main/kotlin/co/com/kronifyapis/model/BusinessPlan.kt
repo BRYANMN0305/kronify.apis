@@ -1,11 +1,15 @@
 package co.com.kronifyapis.model
 
+import co.com.kronifyapis.model.enums.SubscriptionStatus
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.Index
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
@@ -26,7 +30,13 @@ import java.time.LocalDateTime
  */
 
 @Entity
-@Table(name = "business_plan")
+@Table(
+    name = "business_plan",
+    indexes = [
+        Index(name = "idx_business_plan_business_active", columnList = "business_id, active"),
+        Index(name = "idx_business_plan_plan_active", columnList = "plan_id, active")
+    ]
+)
 data class BusinessPlan(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,6 +53,10 @@ data class BusinessPlan(
 
     @Column(name = "active", nullable = false)
     var active: Boolean = true,
+
+    @Column(name = "subscription_status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    var subscriptionStatus: SubscriptionStatus = SubscriptionStatus.ACTIVE,
 
     @Column(name = "start_at")
     var startAt: LocalDateTime? = null,

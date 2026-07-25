@@ -14,8 +14,12 @@ import org.springframework.data.repository.query.Param
 
 interface BusinessPlanRepository : JpaRepository<BusinessPlan, Long> {
 
+    fun existsByPlan_PlanIdAndActiveTrue(planId: Long): Boolean
+
     // Busca el plan activo de un negocio
     fun findByBusiness_BusinessIdAndActiveTrue(businessId: Long): BusinessPlan?
+
+    fun findAllByBusiness_BusinessIdOrderByStartAtDesc(businessId: Long): List<BusinessPlan>
 
     // Busca el plan activo con bloqueo pesimista para control de concurrencia en límites
     @Lock(LockModeType.PESSIMISTIC_WRITE)

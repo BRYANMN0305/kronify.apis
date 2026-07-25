@@ -6,6 +6,7 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.Index
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.PreUpdate
@@ -28,7 +29,13 @@ import java.time.LocalDateTime
  */
 
 @Entity
-@Table(name = "business")
+@Table(
+    name = "business",
+    indexes = [
+        Index(name = "idx_business_slug_active", columnList = "slug, active"),
+        Index(name = "idx_business_owner", columnList = "owner_user_id")
+    ]
+)
 data class Business(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
