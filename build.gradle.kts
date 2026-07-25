@@ -36,7 +36,6 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.hibernate.orm:hibernate-community-dialects")
-    implementation("me.paulschwarz:spring-dotenv:4.0.0")
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
@@ -60,9 +59,6 @@ dependencies {
     testImplementation(kotlin("test"))
 
     testImplementation("io.mockk:mockk:1.13.13")
-
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
 }
 

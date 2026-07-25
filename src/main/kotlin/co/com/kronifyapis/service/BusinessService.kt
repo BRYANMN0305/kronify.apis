@@ -5,6 +5,7 @@ import co.com.kronifyapis.dto.business.BusinessCreateResponse
 import co.com.kronifyapis.dto.business.BusinessSettingsResponse
 import co.com.kronifyapis.dto.business.BusinessUpdateRequest
 import co.com.kronifyapis.dto.business.BusinessUpdateResponse
+import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.model.enums.ProfileType
 import co.com.kronifyapis.exception.ConflictException
 import co.com.kronifyapis.exception.ForbiddenOperationException
@@ -13,6 +14,7 @@ import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository
+import co.com.kronifyapis.repository.PlanRepository
 import co.com.kronifyapis.repository.UserRepository
 import co.com.kronifyapis.utils.ProfileValidationHelper
 import org.springframework.stereotype.Service
@@ -27,6 +29,7 @@ class BusinessService(
     private val businessRepository: BusinessRepository,
     private val employeeRepository: EmployeeRepository,
     private val userRepository: UserRepository,
+    private val planRepository: PlanRepository,
     private val planService: PlanService,
     private val profileValidationHelper: ProfileValidationHelper
 ) {
@@ -67,8 +70,23 @@ class BusinessService(
         }
 
         val savedBusiness = businessRepository.save(business)
+        val businessId = savedBusiness.businessId!!
 
-        planService.assignFreePlanOnCreate(savedBusiness.businessId!!)
+        val selectedPlanId = request.planId
+        if (selectedPlanId != null) {
+            val plan = planRepository.findById(selectedPlanId)
+                .orElseThrow { ResourceNotFoundException("Plan no encontrado") }
+
+            if (plan.requiresActivationCode) {
+                val code = request.activationCode
+                    ?: throw BadRequestException("Este plan requiere un código de activación")
+                planService.validateAndUseActivationCode(code, selectedPlanId, businessId)
+            }
+
+            planService.assignPlanToBusiness(businessId, plan)
+        } else {
+            planService.assignFreePlanOnCreate(businessId)
+        }
 
         if (request.ownerWorksAsEmployee && !employeeRepository.existsByUserAndBusiness(ownerUser, savedBusiness)) {
             employeeRepository.save(

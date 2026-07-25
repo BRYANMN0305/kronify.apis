@@ -8,6 +8,7 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.Index
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Enumerated
@@ -32,7 +33,14 @@ import java.time.LocalDateTime
  */
 
 @Entity
-@Table(name = "appointments")
+@Table(
+    name = "appointments",
+    indexes = [
+        Index(name = "idx_appointments_business_start", columnList = "business_id, start_at"),
+        Index(name = "idx_appointments_employee_range", columnList = "employee_id, start_at, end_at"),
+        Index(name = "idx_appointments_customer_start", columnList = "customer_id, start_at")
+    ]
+)
 data class Appointment(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

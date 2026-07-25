@@ -7,6 +7,8 @@ import co.com.kronifyapis.dto.auth.AuthenticatedUser
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.service.AppointmentService
 import jakarta.validation.Valid
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -34,6 +36,14 @@ class PublicAppointmentController(
         @AuthenticationPrincipal user: AuthenticatedUser
     ): ResponseEntity<AppointmentAutofillResponse> {
         return ResponseEntity.ok(appointmentService.getBookingAutofill(user.userId))
+    }
+
+    @GetMapping("/history")
+    fun getHistory(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        pageable: Pageable
+    ): ResponseEntity<Page<AppointmentResponse>> {
+        return ResponseEntity.ok(appointmentService.listClientAppointmentHistory(user.userId, pageable))
     }
 
     /**

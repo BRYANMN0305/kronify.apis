@@ -19,7 +19,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
-    private val jwtAuthenticationFilter: JwtAuthenticationFilter
+    private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val adminApiKeyFilter: AdminApiKeyFilter
 ) {
     /**
      * Bean para codificar contraseñas con BCrypt.
@@ -41,6 +42,7 @@ class SecurityConfig(
                 it.requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/appointments/").permitAll()
                 it.requestMatchers(HttpMethod.GET, "/public/**").permitAll()
+                it.requestMatchers("/admin/**").permitAll()
                 it.requestMatchers(
                     "/swagger-ui.html",
                     "/swagger-ui/**",
@@ -50,6 +52,7 @@ class SecurityConfig(
                 ).permitAll()
                 it.anyRequest().authenticated()
             }
+            .addFilterBefore(adminApiKeyFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .httpBasic { it.disable() }
             .formLogin { it.disable() }

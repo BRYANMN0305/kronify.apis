@@ -9,7 +9,11 @@ package co.com.kronifyapis.dto.plan
 data class PlanResponse(
     val planId: Long,
     val name: String,
+    val displayName: String,
+    val description: String?,
+    val monthlyPriceCents: Int,
     val serviceLimit: Int?,
     val monthlyAppointmentLimit: Int?,
-    val employeeLimit: Int?
+    val employeeLimit: Int?,
+    val requiresActivationCode: Boolean = false
 )

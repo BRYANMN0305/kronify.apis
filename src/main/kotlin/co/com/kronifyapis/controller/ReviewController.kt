@@ -6,6 +6,8 @@ import co.com.kronifyapis.dto.review.ReviewResponse
 import co.com.kronifyapis.dto.review.ReviewVisibilityRequest
 import co.com.kronifyapis.service.ReviewService
 import jakarta.validation.Valid
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -34,9 +36,10 @@ class ReviewController(
 
     @GetMapping("/business/reviews")
     fun listBusinessReviews(
-        @AuthenticationPrincipal user: AuthenticatedUser
-    ): ResponseEntity<List<ReviewResponse>> {
-        return ResponseEntity.ok(reviewService.listBusinessReviews(user.userId))
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        pageable: Pageable
+    ): ResponseEntity<Page<ReviewResponse>> {
+        return ResponseEntity.ok(reviewService.listBusinessReviews(user.userId, pageable))
     }
 
     @PatchMapping("/business/reviews/{reviewId}/visibility")
