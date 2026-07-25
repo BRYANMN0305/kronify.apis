@@ -6,6 +6,7 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.Index
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.PreUpdate
@@ -33,6 +34,9 @@ import java.time.LocalDateTime
 @Entity
 @Table(
     name = "services",
+    indexes = [
+        Index(name = "idx_services_business_active", columnList = "business_id, active")
+    ],
     uniqueConstraints = [
         UniqueConstraint(columnNames = ["business_id", "name"])
     ]
@@ -55,6 +59,9 @@ data class Service(
 
     @Column(name = "duration_minutes", nullable = false)
     var durationMinutes: Int = 0,
+
+    @Column(name = "buffer_minutes", nullable = false)
+    var bufferMinutes: Int = 0,
 
     @Column(name = "price")
     var price: Double? = null,

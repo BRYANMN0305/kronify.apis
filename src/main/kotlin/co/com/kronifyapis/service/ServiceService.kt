@@ -44,6 +44,7 @@ class ServiceService(
             name = request.name.trim(),
             description = request.description,
             durationMinutes = request.durationMinutes,
+            bufferMinutes = request.bufferMinutes,
             price = request.price
         )
 
@@ -90,6 +91,7 @@ class ServiceService(
         service.name = request.name.trim()
         service.description = request.description
         service.durationMinutes = request.durationMinutes
+        service.bufferMinutes = request.bufferMinutes
         service.price = request.price
 
         return serviceRepository.save(service).toResponse()
@@ -126,6 +128,7 @@ class ServiceService(
             description = description,
             price = price,
             durationMinutes = durationMinutes,
+            bufferMinutes = bufferMinutes,
             active = active,
             createdAt = createdAt
         )

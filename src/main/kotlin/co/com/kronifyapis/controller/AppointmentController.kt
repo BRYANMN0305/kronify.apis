@@ -9,6 +9,8 @@ import co.com.kronifyapis.model.enums.AppointmentOrigin
 import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.service.AppointmentService
 import jakarta.validation.Valid
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -51,9 +53,10 @@ class AppointmentController(
      */
     @GetMapping("/")
     fun listAppointments(
-        @AuthenticationPrincipal user: AuthenticatedUser
-    ): ResponseEntity<List<AppointmentResponse>> {
-        return ResponseEntity.ok(appointmentService.listAppointments(user.userId))
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        pageable: Pageable
+    ): ResponseEntity<Page<AppointmentResponse>> {
+        return ResponseEntity.ok(appointmentService.listAppointments(user.userId, pageable))
     }
 
     /**

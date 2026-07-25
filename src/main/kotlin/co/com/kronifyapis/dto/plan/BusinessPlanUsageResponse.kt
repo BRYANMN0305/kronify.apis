@@ -1,5 +1,6 @@
 package co.com.kronifyapis.dto.plan
 
+import co.com.kronifyapis.model.enums.SubscriptionStatus
 import java.time.LocalDateTime
 
 /**
@@ -9,6 +10,7 @@ import java.time.LocalDateTime
 data class BusinessPlanUsageResponse(
     val plan: PlanResponse,
     val active: Boolean,
+    val subscriptionStatus: SubscriptionStatus,
     val startAt: LocalDateTime?,
     val endAt: LocalDateTime?,
     val serviceCount: Long,
@@ -16,5 +18,8 @@ data class BusinessPlanUsageResponse(
     val employeeCount: Long,
     val serviceLimitReached: Boolean,
     val appointmentLimitReached: Boolean,
-    val employeeLimitReached: Boolean
+    val employeeLimitReached: Boolean,
+    val serviceLimitExceeded: Boolean,
+    val appointmentLimitExceeded: Boolean,
+    val employeeLimitExceeded: Boolean
 )

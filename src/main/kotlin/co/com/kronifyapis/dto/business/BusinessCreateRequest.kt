@@ -32,5 +32,9 @@ data class BusinessCreateRequest(
 
     val whatsApp: String? = null,
 
-    val ownerWorksAsEmployee: Boolean = true
+    val ownerWorksAsEmployee: Boolean = true,
+
+    val planId: Long? = null,
+
+    val activationCode: String? = null
 )

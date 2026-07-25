@@ -124,7 +124,8 @@ class AvailabilityService(
         val busyIntervals = blocks.map {
             BusyInterval(it.startAt.toLocalTime(), it.endAt.toLocalTime())
         } + busyAppointments.map {
-            BusyInterval(it.startAt.toLocalTime(), it.endAt.toLocalTime())
+            val bufferMinutes = it.service?.bufferMinutes ?: 0
+            BusyInterval(it.startAt.toLocalTime(), it.endAt.plusMinutes(bufferMinutes.toLong()).toLocalTime())
         }
 
         val employeeName = "${employee.user?.name ?: ""} ${employee.user?.lastName ?: ""}".trim()
@@ -133,7 +134,7 @@ class AvailabilityService(
         return AvailabilityCalculator.calculateAvailableSlots(
             workingStart = schedule.startTime,
             workingEnd = schedule.endTime,
-            durationMinutes = service.durationMinutes,
+            durationMinutes = service.durationMinutes + service.bufferMinutes,
             busyIntervals = busyIntervals,
             stepMinutes = slotStepMinutes.toInt()
         )

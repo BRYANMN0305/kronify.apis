@@ -39,6 +39,13 @@ out/
 ### Kotlin ###
 .kotlin
 
+### Log files ###
+*.log
+*.err
+test-results.txt
+resp.json
+tmp/
+
 ### Enviroment files ###
 .env
 env

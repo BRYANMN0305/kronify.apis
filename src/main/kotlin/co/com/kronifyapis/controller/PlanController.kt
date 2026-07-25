@@ -43,4 +43,11 @@ class PlanController(
     ): ResponseEntity<BusinessPlanResponse> {
         return ResponseEntity.ok(planService.assignPlan(user.userId, request))
     }
+
+    @GetMapping("/plan/history")
+    fun getPlanHistory(
+        @AuthenticationPrincipal user: AuthenticatedUser
+    ): ResponseEntity<List<BusinessPlanResponse>> {
+        return ResponseEntity.ok(planService.getBusinessPlanHistory(user.userId))
+    }
 }
