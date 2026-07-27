@@ -59,4 +59,5 @@ class SecurityConfig(
             .httpBasic { it.disable() }
             .formLogin { it.disable() }
             .build()
+    }
 }
