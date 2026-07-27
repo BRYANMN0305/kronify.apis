@@ -34,9 +34,11 @@ class SecurityConfig(
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http
+            .cors { }
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
+                it.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 it.requestMatchers(HttpMethod.GET, "/").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
@@ -57,5 +59,4 @@ class SecurityConfig(
             .httpBasic { it.disable() }
             .formLogin { it.disable() }
             .build()
-    }
 }
