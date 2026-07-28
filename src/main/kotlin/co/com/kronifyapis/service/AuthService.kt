@@ -5,8 +5,7 @@ import co.com.kronifyapis.dto.auth.LinkedAuthMethodResponse
 import co.com.kronifyapis.dto.auth.TokenResponse
 import co.com.kronifyapis.dto.auth.UserRegisterRequest
 import co.com.kronifyapis.model.enums.StatusType
-import co.com.kronifyapis.model.enums.ProfileType
-import co.com.kronifyapis.dto.user.UserResponse
+
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ConflictException
 import co.com.kronifyapis.exception.InvalidCredentialsException
@@ -45,7 +44,7 @@ class AuthService(
      * para vincularlo automaticamente como empleado.
      */
     @Transactional
-    fun register(request: UserRegisterRequest): UserResponse {
+    fun register(request: UserRegisterRequest): TokenResponse {
         val email = request.email.trim().lowercase()
 
         if (userRepository.existsByEmail(email)) {
@@ -66,28 +65,11 @@ class AuthService(
         )
         val savedUser = userRepository.save(user)
 
-        if (savedUser.profileType == ProfileType.CLIENT) {
-            return savedUser.toResponse()
-        }
-
         linkInvitationIfNeeded(savedUser)
-        return savedUser.toResponse()
+
+        val token = jwtService.generateToken(savedUser)
+        return savedUser.toTokenResponse(token, jwtService.getExpirationSeconds())
     }
-
-    private fun User.toResponse(): UserResponse {
-        return UserResponse(
-            userId = requireNotNull(userId),
-            name = name,
-            lastName = lastName,
-            phoneNumber = phoneNumber,
-            email = email,
-
-            profileType = profileType,
-            active = active,
-            createdAt = createdAt,
-        )
-    }
-
     /**
      * Inicia sesion con email y contrasena.
      * Si las credenciales son correctas, genera un token JWT y lo devuelve.

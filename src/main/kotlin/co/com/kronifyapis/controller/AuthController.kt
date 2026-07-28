@@ -3,7 +3,6 @@ package co.com.kronifyapis.controller
 import co.com.kronifyapis.dto.auth.LoginRequest
 import co.com.kronifyapis.dto.auth.TokenResponse
 import co.com.kronifyapis.dto.auth.UserRegisterRequest
-import co.com.kronifyapis.dto.user.UserResponse
 import co.com.kronifyapis.service.AuthService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -25,7 +24,7 @@ class AuthController (private val authService: AuthService){
      * Registra un usuario nuevo en la plataforma.
      */
     @PostMapping("/register")
-    fun register(@Valid @RequestBody request: UserRegisterRequest) : ResponseEntity<UserResponse> {
+    fun register(@Valid @RequestBody request: UserRegisterRequest) : ResponseEntity<TokenResponse> {
         return ResponseEntity
             .status(HttpStatus.CREATED)
         .body(authService.register(request))
