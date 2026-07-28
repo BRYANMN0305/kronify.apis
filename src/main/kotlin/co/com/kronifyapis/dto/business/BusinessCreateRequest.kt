@@ -17,6 +17,7 @@ data class BusinessCreateRequest(
     @field:Pattern(regexp = "^[a-z0-9]+(-[a-z0-9]+)*$", message = "El slug debe ser alfanumérico y separado por guiones")
     val slug: String,
 
+    @field:NotBlank
     val category: String? = null,
 
     val description: String? = null,
@@ -25,11 +26,14 @@ data class BusinessCreateRequest(
 
     val logoUrl: String? = null,
 
+    @field:NotBlank
     @field:Email(message = "El email no es válido")
     val email: String? = null,
 
+    @field:NotBlank
     val phoneNumber: String? = null,
 
+    @field:NotBlank
     val whatsApp: String? = null,
 
     val ownerWorksAsEmployee: Boolean = true,

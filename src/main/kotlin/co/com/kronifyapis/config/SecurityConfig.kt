@@ -44,6 +44,7 @@ class SecurityConfig(
                 it.requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                 it.requestMatchers(HttpMethod.POST, "/appointments/").permitAll()
                 it.requestMatchers(HttpMethod.GET, "/public/**").permitAll()
+                it.requestMatchers("/uploads/**").permitAll()
                 it.requestMatchers("/admin/**").permitAll()
                 it.requestMatchers(
                     "/swagger-ui.html",
