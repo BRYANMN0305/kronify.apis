@@ -2,6 +2,10 @@ server:
   port: 6060
   forward-headers-strategy: framework
 spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
   flyway:
     baseline-on-migrate: true
   application:
@@ -40,5 +44,7 @@ app:
     secret: ${JWT_SECRET}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES}
   frontend-url: ${FRONTEND_URL:https://tu-app.vercel.app}
+  upload:
+    path: ${UPLOAD_DIR:./uploads}
   admin:
     api-key: ${ADMIN_API_KEY}
