@@ -46,7 +46,8 @@ class EmployeeService(
     private val employeeServiceRepository: EmployeeServiceRepository,
     private val weeklyScheduleRepository: WeeklyScheduleRepository,
     private val scheduleBlockRepository: ScheduleBlockRepository,
-    private val appointmentRepository: AppointmentRepository
+    private val appointmentRepository: AppointmentRepository,
+    private val planService: PlanService
 ) {
 
     /**
@@ -86,6 +87,7 @@ class EmployeeService(
         val employee = employeeRepository.findByUserAndBusiness(ownerUser, business)
 
         if (request.enabled) {
+            planService.validateEmployeeLimit(business.businessId!!)
             val saved = employeeRepository.save(
                 (employee ?: Employee()).apply {
                     user = ownerUser
