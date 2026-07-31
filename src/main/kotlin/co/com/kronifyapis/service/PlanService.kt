@@ -156,7 +156,7 @@ class PlanService(
             businessId, monthStart, monthEnd, listOf(AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW)
         )
 
-        val employeeCount = employeeRepository.countByBusiness_BusinessId(businessId)
+        val employeeCount = employeeRepository.countByBusiness_BusinessIdAndActiveTrue(businessId)
 
         val serviceLimit = plan.serviceLimit
         val monthlyLimit = plan.monthlyAppointmentLimit
@@ -232,7 +232,7 @@ class PlanService(
             ?: return
 
         val limit = businessPlan.plan!!.employeeLimit ?: return
-        val currentCount = employeeRepository.countByBusiness_BusinessId(businessId)
+        val currentCount = employeeRepository.countByBusiness_BusinessIdAndActiveTrue(businessId)
         if (currentCount >= limit) {
             throw ForbiddenOperationException(
                 "Límite de empleados alcanzado ($currentCount/$limit). Actualice su plan para agregar más empleados."

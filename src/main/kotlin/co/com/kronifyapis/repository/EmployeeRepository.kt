@@ -31,4 +31,7 @@ interface EmployeeRepository : JpaRepository<Employee, Long> {
 
     //Cuenta los empleados por negocio
     fun countByBusiness_BusinessId(businessId: Long): Long
+
+    //Cuenta los empleados activos por negocio
+    fun countByBusiness_BusinessIdAndActiveTrue(businessId: Long): Long
 }
