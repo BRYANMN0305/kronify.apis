@@ -32,7 +32,7 @@ import jakarta.persistence.UniqueConstraint
 @Table(
     name = "employee_services",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["service_id", "employee_id"])
+        UniqueConstraint(columnNames = ["service_id", "employee_id", "active"])
     ]
 )
 data class EmployeeService(
@@ -47,5 +47,8 @@ data class EmployeeService(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
-    var employee: Employee? = null
+    var employee: Employee? = null,
+
+    @Column(name = "active", nullable = false, columnDefinition = "boolean not null default true")
+    var active: Boolean = true
 )

@@ -36,8 +36,7 @@ class PublicBusinessService(
 
         val businessId = business.businessId!!
 
-        val services = serviceRepository.findAllByBusinessBusinessId(businessId)
-            .filter { it.active }
+        val services = serviceRepository.findAllByBusinessBusinessIdAndActiveTrue(businessId)
             .map {
                 PublicServiceResponse(
                     serviceId = it.serviceId!!,
@@ -48,10 +47,9 @@ class PublicBusinessService(
                 )
             }
 
-        val employees = employeeRepository.findAllByBusiness_BusinessId(businessId)
-            .filter { it.active }
+        val employees = employeeRepository.findAllByBusiness_BusinessIdAndActiveTrue(businessId)
             .map { employee ->
-                val serviceIds = employeeServiceRepository.findAllByEmployee(employee)
+                val serviceIds = employeeServiceRepository.findAllByEmployeeAndActiveTrue(employee)
                     .mapNotNull { it.service?.serviceId }
 
                 PublicEmployeeResponse(

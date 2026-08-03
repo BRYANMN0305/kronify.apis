@@ -37,7 +37,7 @@ class JwtService(
         val expiration = Date(now.time + expirationMinutes * 60_000)
 
         val business = businessRepository.findByOwner(user)
-            ?: employeeRepository.findAllByUser_UserId(user.userId!!)
+            ?: employeeRepository.findAllByUser_UserIdAndActiveTrue(user.userId!!)
                 .firstOrNull()
                 ?.business
 

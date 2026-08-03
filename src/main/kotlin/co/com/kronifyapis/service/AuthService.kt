@@ -146,7 +146,7 @@ class AuthService(
             return
         }
 
-        if (employeeRepository.existsByUserAndBusiness(user, invitation.business!!)) return
+        if (employeeRepository.existsByUserAndBusinessAndActiveTrue(user, invitation.business!!)) return
 
         planService.validateEmployeeLimit(invitation.business!!.businessId!!)
 

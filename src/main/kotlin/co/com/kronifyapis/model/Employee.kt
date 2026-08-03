@@ -32,7 +32,7 @@ import java.time.LocalDateTime
 @Table(
     name = "employees",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["user_id", "business_id"])
+        UniqueConstraint(columnNames = ["user_id", "business_id", "active"])
     ]
 )
 data class Employee(

@@ -9,17 +9,23 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "activation_codes")
+@Table(
+    name = "activation_codes",
+    uniqueConstraints = [
+        UniqueConstraint(columnNames = ["code", "active"])
+    ]
+)
 data class ActivationCode(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "activation_code_id")
     var activationCodeId: Long? = null,
 
-    @Column(name = "code", nullable = false, unique = true)
+    @Column(name = "code", nullable = false)
     var code: String = "",
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -39,5 +45,8 @@ data class ActivationCode(
     var expiresAt: LocalDateTime? = null,
 
     @Column(name = "created_at", nullable = false)
-    var createdAt: LocalDateTime? = null
+    var createdAt: LocalDateTime? = null,
+
+    @Column(name = "active", nullable = false, columnDefinition = "boolean not null default true")
+    var active: Boolean = true
 )

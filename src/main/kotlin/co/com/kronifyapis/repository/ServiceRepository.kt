@@ -11,14 +11,14 @@ import org.springframework.data.jpa.repository.JpaRepository
 interface ServiceRepository : JpaRepository<Service, Long> {
 
     //Busca un servicio por su ID y negocio
-    fun findByBusiness_BusinessIdAndName(businessId: Long, name: String): Service?
+    fun findByBusiness_BusinessIdAndNameAndActiveTrue(businessId: Long, name: String): Service?
 
-    //Busca todos los servicios por negocio
-    fun findAllByBusinessBusinessId(businessId: Long): List<Service>
+    //Busca todos los servicios activos por negocio
+    fun findAllByBusinessBusinessIdAndActiveTrue(businessId: Long): List<Service>
 
-    //Busca un servicio por su ID y negocio
-    fun findByServiceIdAndBusinessBusinessId(serviceId: Long, businessId: Long): Service?
+    //Busca un servicio activo por su ID y negocio
+    fun findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId: Long, businessId: Long): Service?
 
-    //Cuenta los servicios por negocio
-    fun countByBusiness_BusinessId(businessId: Long): Long
+    //Cuenta los servicios activos por negocio
+    fun countByBusiness_BusinessIdAndActiveTrue(businessId: Long): Long
 }

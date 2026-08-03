@@ -11,14 +11,14 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface WeeklyScheduleRepository : JpaRepository<WeeklySchedule, Long> {
 
-    //Busca todos los horarios semanales de un empleado
-    fun findAllByEmployee(employee: Employee): List<WeeklySchedule>
+    //Busca todos los horarios semanales activos de un empleado
+    fun findAllByEmployeeAndActiveTrue(employee: Employee): List<WeeklySchedule>
 
-    //Busca un horario semanal por su ID y empleado
-    fun findByWeeklyScheduleIdAndEmployee(weeklyScheduleId: Long, employee: Employee): WeeklySchedule?
+    //Busca un horario semanal activo por su ID y empleado
+    fun findByWeeklyScheduleIdAndEmployeeAndActiveTrue(weeklyScheduleId: Long, employee: Employee): WeeklySchedule?
 
     fun deleteAllByEmployee(employee: Employee)
 
-    //Busca un horario semanal por empleado y día de la semana
-    fun findByEmployeeAndDayOfWeek(employee: Employee, dayOfWeek: Int): WeeklySchedule?
+    //Busca un horario semanal activo por empleado y día de la semana
+    fun findByEmployeeAndDayOfWeekAndActiveTrue(employee: Employee, dayOfWeek: Int): WeeklySchedule?
 }

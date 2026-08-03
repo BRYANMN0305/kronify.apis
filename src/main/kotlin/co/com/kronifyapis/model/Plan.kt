@@ -56,5 +56,8 @@ data class Plan(
     var employeeLimit: Int? = null,
 
     @Column(name = "requires_activation_code", nullable = false)
-    var requiresActivationCode: Boolean = false
+    var requiresActivationCode: Boolean = false,
+
+    @Column(name = "active", nullable = false, columnDefinition = "boolean not null default true")
+    var active: Boolean = true
 )

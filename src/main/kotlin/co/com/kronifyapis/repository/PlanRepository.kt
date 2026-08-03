@@ -10,5 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository
 interface PlanRepository : JpaRepository<Plan, Long> {
 
     //Busca por nombre
-    fun findByName(name: String): Plan?
+    fun findByNameAndActiveTrue(name: String): Plan?
+
+    //Lista todos los planes activos
+    fun findAllByActiveTrue(): List<Plan>
 }

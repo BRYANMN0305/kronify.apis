@@ -38,7 +38,7 @@ import java.time.LocalDateTime
         Index(name = "idx_services_business_active", columnList = "business_id, active")
     ],
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["business_id", "name"])
+        UniqueConstraint(columnNames = ["business_id", "name", "active"])
     ]
 )
 data class Service(

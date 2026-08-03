@@ -6,12 +6,16 @@ import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ForbiddenOperationException
 import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.Business
+import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.model.Service as ServiceEntity
+import co.com.kronifyapis.repository.AppointmentRepository
 import co.com.kronifyapis.repository.BusinessRepository
+import co.com.kronifyapis.repository.EmployeeServiceRepository
 import co.com.kronifyapis.repository.ServiceRepository
 import co.com.kronifyapis.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 /**
  * Servicio para gestionar los servicios que ofrece un negocio.
@@ -22,6 +26,8 @@ class ServiceService(
     private val businessRepository: BusinessRepository,
     private val userRepository: UserRepository,
     private val planService: PlanService,
+    private val appointmentRepository: AppointmentRepository,
+    private val employeeServiceRepository: EmployeeServiceRepository,
 ) {
 
     /**
@@ -34,7 +40,7 @@ class ServiceService(
 
         planService.validateServiceLimit(business.businessId!!)
 
-        val existingService = serviceRepository.findByBusiness_BusinessIdAndName(business.businessId!!, request.name)
+        val existingService = serviceRepository.findByBusiness_BusinessIdAndNameAndActiveTrue(business.businessId!!, request.name)
         if (existingService != null) {
             throw BadRequestException("El servicio ya existe")
         }
@@ -53,12 +59,12 @@ class ServiceService(
     }
 
     /**
-     * Lista todos los servicios del negocio del usuario.
+     * Lista todos los servicios activos del negocio del usuario.
      */
     @Transactional
     fun listServices(userId: Long): List<ServiceResponse> {
         val business = findOwnedBusiness(userId)
-        return serviceRepository.findAllByBusinessBusinessId(business.businessId!!)
+        return serviceRepository.findAllByBusinessBusinessIdAndActiveTrue(business.businessId!!)
             .map { it.toResponse() }
     }
 
@@ -68,7 +74,7 @@ class ServiceService(
     @Transactional
     fun getService(userId: Long, serviceId: Long): ServiceResponse {
         val business = findOwnedBusiness(userId)
-        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, business.businessId!!)
+        val service = serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, business.businessId!!)
             ?: throw ResourceNotFoundException("Servicio no encontrado")
         return service.toResponse()
     }
@@ -80,10 +86,10 @@ class ServiceService(
     fun updateService(userId: Long, serviceId: Long, request: ServiceRequest): ServiceResponse {
         val business = findOwnedBusiness(userId)
         val businessId = business.businessId!!
-        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, businessId)
+        val service = serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, businessId)
             ?: throw ResourceNotFoundException("Servicio no encontrado")
 
-        val existingService = serviceRepository.findByBusiness_BusinessIdAndName(businessId, request.name)
+        val existingService = serviceRepository.findByBusiness_BusinessIdAndNameAndActiveTrue(businessId, request.name)
         if (existingService != null && existingService.serviceId != serviceId) {
             throw BadRequestException("El servicio ya existe")
         }
@@ -93,19 +99,41 @@ class ServiceService(
         service.durationMinutes = request.durationMinutes
         service.bufferMinutes = request.bufferMinutes
         service.price = request.price
+        request.active?.let { service.active = it }
 
         return serviceRepository.save(service).toResponse()
     }
 
     /**
-     * Elimina un servicio del negocio.
+     * Elimina (soft delete) un servicio del negocio.
+     * Verifica que no tenga citas futuras y desactiva sus asignaciones a empleados.
      */
     @Transactional
     fun deleteService(userId: Long, serviceId: Long) {
         val business = findOwnedBusiness(userId)
-        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, business.businessId!!)
+        val service = serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, business.businessId!!)
             ?: throw ResourceNotFoundException("Servicio no encontrado")
-        serviceRepository.delete(service)
+
+        val futureAppointments = appointmentRepository
+            .findByServiceServiceIdAndStartAtGreaterThanEqualAndStatusIn(
+                serviceId,
+                LocalDateTime.now(),
+                listOf(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
+            )
+        if (futureAppointments.isNotEmpty()) {
+            throw BadRequestException(
+                "No se puede eliminar el servicio porque tiene ${futureAppointments.size} cita(s) futura(s). " +
+                    "Reasigne o cancele las citas primero."
+            )
+        }
+
+        employeeServiceRepository.findAllByServiceAndActiveTrue(service).forEach {
+            it.active = false
+            employeeServiceRepository.save(it)
+        }
+
+        service.active = false
+        serviceRepository.save(service)
     }
 
     /**
