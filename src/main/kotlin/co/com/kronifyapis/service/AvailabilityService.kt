@@ -55,8 +55,7 @@ class AvailabilityService(
             ?.takeIf { it.active }
             ?: throw ResourceNotFoundException("Negocio no encontrado")
 
-        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, business.businessId!!)
-            ?.takeIf { it.active }
+        val service = serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, business.businessId!!)
             ?: throw ResourceNotFoundException("Servicio no encontrado para este negocio")
 
         if (date.isBefore(LocalDate.now())) {
@@ -84,19 +83,17 @@ class AvailabilityService(
      */
     private fun resolveCandidateEmployees(businessId: Long, service: Service, employeeId: Long?): List<Employee> {
         if (employeeId != null) {
-            val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
-                ?.takeIf { it.active }
+            val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(employeeId, businessId)
                 ?: throw ResourceNotFoundException("Empleado no encontrado para este negocio")
 
-            if (!employeeServiceRepository.existsByEmployeeAndService(employee, service)) {
+            if (!employeeServiceRepository.existsByEmployeeAndServiceAndActiveTrue(employee, service)) {
                 throw BadRequestException("El empleado no tiene asignado este servicio")
             }
             return listOf(employee)
         }
 
-        return employeeRepository.findAllByBusiness_BusinessId(businessId)
-            .filter { it.active }
-            .filter { employeeServiceRepository.existsByEmployeeAndService(it, service) }
+        return employeeRepository.findAllByBusiness_BusinessIdAndActiveTrue(businessId)
+            .filter { employeeServiceRepository.existsByEmployeeAndServiceAndActiveTrue(it, service) }
     }
 
     /**
@@ -108,14 +105,14 @@ class AvailabilityService(
      */
     private fun computeSlotsForEmployee(employee: Employee, service: Service, date: LocalDate): List<TimeSlotResponse> {
         val dayOfWeek = date.dayOfWeek.value
-        val schedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeek(employee, dayOfWeek)
+        val schedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, dayOfWeek)
             ?: return emptyList()
 
         val dayStart = LocalDateTime.of(date, LocalTime.MIDNIGHT)
         val dayEnd = dayStart.plusDays(1)
 
         val blocks = scheduleBlockRepository
-            .findAllByEmployeeAndStartAtLessThanAndEndAtGreaterThan(employee, dayEnd, dayStart)
+            .findAllByEmployeeAndStartAtLessThanAndEndAtGreaterThanAndActiveTrue(employee, dayEnd, dayStart)
 
         val busyAppointments = appointmentRepository
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(employee.employeeId!!, dayEnd, dayStart)

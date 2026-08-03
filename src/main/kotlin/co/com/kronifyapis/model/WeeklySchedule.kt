@@ -31,7 +31,7 @@ import java.time.LocalTime
 @Table(
     name = "weekly_schedules",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["employee_id", "day_of_week"])
+        UniqueConstraint(columnNames = ["employee_id", "day_of_week", "active"])
     ]
 )
 
@@ -53,5 +53,8 @@ data class WeeklySchedule(
     var startTime: LocalTime = LocalTime.MIN,
 
     @Column(name = "end_time", nullable = false)
-    var endTime: LocalTime = LocalTime.MIN
+    var endTime: LocalTime = LocalTime.MIN,
+
+    @Column(name = "active", nullable = false, columnDefinition = "boolean not null default true")
+    var active: Boolean = true
 )

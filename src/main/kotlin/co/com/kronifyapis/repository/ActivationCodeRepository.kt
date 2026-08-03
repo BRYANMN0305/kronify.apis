@@ -6,9 +6,11 @@ import java.util.Optional
 
 interface ActivationCodeRepository : JpaRepository<ActivationCode, Long> {
 
-    fun findByCode(code: String): Optional<ActivationCode>
+    fun findByCodeAndActiveTrue(code: String): Optional<ActivationCode>
 
-    fun findByPlan_PlanId(planId: Long): List<ActivationCode>
+    fun findByPlan_PlanIdAndActiveTrue(planId: Long): List<ActivationCode>
 
-    fun findByUsed(used: Boolean): List<ActivationCode>
+    fun findByUsedAndActiveTrue(used: Boolean): List<ActivationCode>
+
+    fun findAllByActiveTrue(): List<ActivationCode>
 }

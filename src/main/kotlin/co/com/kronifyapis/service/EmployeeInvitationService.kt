@@ -152,7 +152,7 @@ class EmployeeInvitationService(
             )
         }
 
-        if (employeeRepository.existsByUserAndBusiness(user, business)) {
+        if (employeeRepository.existsByUserAndBusinessAndActiveTrue(user, business)) {
             throw BadRequestException("Ya eres empleado de este negocio")
         }
 

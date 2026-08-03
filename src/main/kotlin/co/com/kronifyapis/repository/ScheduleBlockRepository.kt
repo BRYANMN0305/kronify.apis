@@ -12,20 +12,20 @@ import java.time.LocalDateTime
 
 interface ScheduleBlockRepository : JpaRepository<ScheduleBlock, Long> {
 
-    //Busca todos los bloqueos de agenda por empleado
-    fun findAllByEmployee(employee: Employee): List<ScheduleBlock>
+    //Busca todos los bloqueos de agenda activos por empleado
+    fun findAllByEmployeeAndActiveTrue(employee: Employee): List<ScheduleBlock>
 
-    //Busca un bloqueo de agenda por su ID y empleado
-    fun findByScheduleBlockIdAndEmployee(scheduleBlockId: Long, employee: Employee): ScheduleBlock?
+    //Busca un bloqueo de agenda activo por su ID y empleado
+    fun findByScheduleBlockIdAndEmployeeAndActiveTrue(scheduleBlockId: Long, employee: Employee): ScheduleBlock?
 
-    //Verifica si existe un bloqueo de agenda para un empleado en un rango de tiempo
-    fun existsByEmployeeAndStartAtLessThanAndEndAtGreaterThan(
+    //Verifica si existe un bloqueo de agenda activo para un empleado en un rango de tiempo
+    fun existsByEmployeeAndStartAtLessThanAndEndAtGreaterThanAndActiveTrue(
         employee: Employee,
         endAt: LocalDateTime,
         startAt: LocalDateTime
     ): Boolean
 
-    fun findAllByEmployeeAndStartAtLessThanAndEndAtGreaterThan(
+    fun findAllByEmployeeAndStartAtLessThanAndEndAtGreaterThanAndActiveTrue(
         employee: Employee,
         endAt: LocalDateTime,
         startAt: LocalDateTime

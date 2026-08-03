@@ -59,7 +59,7 @@ class PlanService(
     @Transactional
     fun assignFreePlanOnCreate(businessId: Long) {
         ensureDefaultPlans()
-        val freePlan = planRepository.findByName("FREE")
+        val freePlan = planRepository.findByNameAndActiveTrue("FREE")
             ?: throw ResourceNotFoundException("Plan FREE no encontrado")
 
         val business = businessRepository.findById(businessId)
@@ -146,7 +146,7 @@ class PlanService(
 
         val plan = businessPlan.plan!!
 
-        val serviceCount = serviceRepository.countByBusiness_BusinessId(businessId)
+        val serviceCount = serviceRepository.countByBusiness_BusinessIdAndActiveTrue(businessId)
 
         val now = LocalDateTime.now()
         val yearMonth = YearMonth.from(now)
@@ -193,7 +193,7 @@ class PlanService(
             ?: return
 
         val limit = businessPlan.plan!!.serviceLimit ?: return
-        val currentCount = serviceRepository.countByBusiness_BusinessId(businessId)
+        val currentCount = serviceRepository.countByBusiness_BusinessIdAndActiveTrue(businessId)
         if (currentCount >= limit) {
             throw ForbiddenOperationException(
                 "Límite de servicios alcanzado ($currentCount/$limit). Actualice su plan para crear más servicios."
@@ -242,18 +242,21 @@ class PlanService(
 
     fun getAllPlans(): List<PlanResponse> {
         ensureDefaultPlans()
-        return planRepository.findAll().map { it.toResponse() }
+        return planRepository.findAllByActiveTrue().map { it.toResponse() }
     }
 
     fun getPlanById(planId: Long): PlanResponse {
         val plan = planRepository.findById(planId)
             .orElseThrow { ResourceNotFoundException("Plan no encontrado") }
+        if (!plan.active) {
+            throw ResourceNotFoundException("Plan no encontrado")
+        }
         return plan.toResponse()
     }
 
     @Transactional
     fun createPlan(request: CreatePlanRequest): PlanResponse {
-        if (planRepository.findByName(request.name.trim()) != null) {
+        if (planRepository.findByNameAndActiveTrue(request.name.trim()) != null) {
             throw ConflictException("Ya existe un plan con el nombre '${request.name.trim()}'")
         }
 
@@ -276,10 +279,13 @@ class PlanService(
     fun updatePlan(planId: Long, request: UpdatePlanRequest): PlanResponse {
         val plan = planRepository.findById(planId)
             .orElseThrow { ResourceNotFoundException("Plan no encontrado") }
+        if (!plan.active) {
+            throw ResourceNotFoundException("Plan no encontrado")
+        }
 
         request.name?.let {
             val trimmed = it.trim()
-            val existing = planRepository.findByName(trimmed)
+            val existing = planRepository.findByNameAndActiveTrue(trimmed)
             if (existing != null && existing.planId != planId) {
                 throw ConflictException("Ya existe un plan con el nombre '$trimmed'")
             }
@@ -300,12 +306,16 @@ class PlanService(
     fun deletePlan(planId: Long) {
         val plan = planRepository.findById(planId)
             .orElseThrow { ResourceNotFoundException("Plan no encontrado") }
+        if (!plan.active) {
+            throw ResourceNotFoundException("Plan no encontrado")
+        }
 
         if (businessPlanRepository.existsByPlan_PlanIdAndActiveTrue(planId)) {
             throw ConflictException("No se puede eliminar el plan porque hay negocios activos usándolo")
         }
 
-        planRepository.delete(plan)
+        plan.active = false
+        planRepository.save(plan)
     }
 
     @Transactional
@@ -319,7 +329,7 @@ class PlanService(
 
         val code = request.code ?: generateActivationCode()
 
-        if (activationCodeRepository.findByCode(code).isPresent) {
+        if (activationCodeRepository.findByCodeAndActiveTrue(code).isPresent) {
             throw ConflictException("El código de activación ya existe")
         }
 
@@ -339,9 +349,9 @@ class PlanService(
 
     fun getActivationCodes(used: Boolean?): List<ActivationCodeResponse> {
         val codes = if (used != null) {
-            activationCodeRepository.findByUsed(used)
+            activationCodeRepository.findByUsedAndActiveTrue(used)
         } else {
-            activationCodeRepository.findAll()
+            activationCodeRepository.findAllByActiveTrue()
         }
         return codes.map { it.toResponse() }
     }
@@ -350,12 +360,16 @@ class PlanService(
     fun deleteActivationCode(codeId: Long) {
         val code = activationCodeRepository.findById(codeId)
             .orElseThrow { ResourceNotFoundException("Código de activación no encontrado") }
-        activationCodeRepository.delete(code)
+        if (!code.active) {
+            throw ResourceNotFoundException("Código de activación no encontrado")
+        }
+        code.active = false
+        activationCodeRepository.save(code)
     }
 
     @Transactional
     fun validateAndUseActivationCode(code: String, planId: Long, businessId: Long) {
-        val activationCode = activationCodeRepository.findByCode(code)
+        val activationCode = activationCodeRepository.findByCodeAndActiveTrue(code)
             .orElseThrow { BadRequestException("Código de activación inválido") }
 
         if (activationCode.used) {
@@ -509,7 +523,7 @@ class PlanService(
         employeeLimit: Int?,
         requiresActivationCode: Boolean
     ) {
-        val existing = planRepository.findByName(name)
+        val existing = planRepository.findByNameAndActiveTrue(name)
         if (existing != null) {
             existing.displayName = displayName
             existing.description = description

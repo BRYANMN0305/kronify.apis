@@ -69,7 +69,7 @@ class EmployeeService(
         request: EmployeeSchedulePermissionRequest
     ): EmployeeResponse {
         val business = findOwnedBusiness(userId)
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, business.businessId!!)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(employeeId, business.businessId!!)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
         employee.selfManagedSchedule = request.selfManagedSchedule
@@ -84,7 +84,7 @@ class EmployeeService(
     fun toggleOwnerEmployee(userId: Long, request: OwnerEmployeeToggleRequest): EmployeeResponse {
         val business = findOwnedBusiness(userId)
         val ownerUser = business.owner ?: throw ResourceNotFoundException("Dueño no encontrado")
-        val employee = employeeRepository.findByUserAndBusiness(ownerUser, business)
+        val employee = employeeRepository.findByUserAndBusinessAndActiveTrue(ownerUser, business)
 
         if (request.enabled) {
             planService.validateEmployeeLimit(business.businessId!!)
@@ -121,7 +121,7 @@ class EmployeeService(
         request: EmployeeUpdateRequest
     ): EmployeeResponse {
         val business = findOwnedBusiness(userId)
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, business.businessId!!)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(employeeId, business.businessId!!)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
         if (request.active == false && employee.active) {
@@ -150,7 +150,7 @@ class EmployeeService(
     @Transactional
     fun deactivateEmployee(userId: Long, employeeId: Long): EmployeeResponse {
         val business = findOwnedBusiness(userId)
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, business.businessId!!)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(employeeId, business.businessId!!)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
         if (!employee.active) {
@@ -181,7 +181,7 @@ class EmployeeService(
     @Transactional
     fun deleteEmployee(userId: Long, employeeId: Long) {
         val business = findOwnedBusiness(userId)
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, business.businessId!!)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(employeeId, business.businessId!!)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
         if (employee.owner) {
@@ -200,10 +200,20 @@ class EmployeeService(
             )
         }
 
-        weeklyScheduleRepository.findAllByEmployee(employee).forEach { weeklyScheduleRepository.delete(it) }
-        scheduleBlockRepository.findAllByEmployee(employee).forEach { scheduleBlockRepository.delete(it) }
-        employeeServiceRepository.findAllByEmployee(employee).forEach { employeeServiceRepository.delete(it) }
-        employeeRepository.delete(employee)
+        weeklyScheduleRepository.findAllByEmployeeAndActiveTrue(employee).forEach {
+            it.active = false
+            weeklyScheduleRepository.save(it)
+        }
+        scheduleBlockRepository.findAllByEmployeeAndActiveTrue(employee).forEach {
+            it.active = false
+            scheduleBlockRepository.save(it)
+        }
+        employeeServiceRepository.findAllByEmployeeAndActiveTrue(employee).forEach {
+            it.active = false
+            employeeServiceRepository.save(it)
+        }
+        employee.active = false
+        employeeRepository.save(employee)
     }
 
     /**
@@ -212,10 +222,10 @@ class EmployeeService(
     @Transactional(readOnly = true)
     fun listEmployeeServices(userId: Long, employeeId: Long): List<ServiceResponse> {
         val business = findOwnedBusiness(userId)
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, business.businessId!!)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(employeeId, business.businessId!!)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
-        return employeeServiceRepository.findAllByEmployee(employee)
+        return employeeServiceRepository.findAllByEmployeeAndActiveTrue(employee)
             .mapNotNull { it.service }
             .map { it.toServiceResponse() }
     }
@@ -232,15 +242,15 @@ class EmployeeService(
     ): List<ServiceResponse> {
         val business = findOwnedBusiness(userId)
         val businessId = business.businessId!!
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(employeeId, businessId)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
         val requestedServiceIds = request.serviceIds.distinct().toSet()
-        val currentLinks = employeeServiceRepository.findAllByEmployee(employee)
+        val currentLinks = employeeServiceRepository.findAllByEmployeeAndActiveTrue(employee)
         val currentServiceIds = currentLinks.mapNotNull { it.service?.serviceId }.toSet()
 
         val servicesToAdd = requestedServiceIds.minus(currentServiceIds).map { serviceId ->
-            serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, businessId)
+            serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, businessId)
                 ?: throw ResourceNotFoundException("Servicio no encontrado")
         }
 
@@ -255,7 +265,7 @@ class EmployeeService(
             )
         }
 
-        return employeeServiceRepository.findAllByEmployee(employee)
+        return employeeServiceRepository.findAllByEmployeeAndActiveTrue(employee)
             .mapNotNull { it.service }
             .map { it.toServiceResponse() }
     }
@@ -267,15 +277,16 @@ class EmployeeService(
     fun removeServiceFromEmployee(userId: Long, employeeId: Long, serviceId: Long) {
         val business = findOwnedBusiness(userId)
         val businessId = business.businessId!!
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(employeeId, businessId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(employeeId, businessId)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
-        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(serviceId, businessId)
+        val service = serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, businessId)
             ?: throw ResourceNotFoundException("Servicio no encontrado")
 
-        val employeeService = employeeServiceRepository.findByEmployeeAndService(employee, service)
+        val employeeService = employeeServiceRepository.findByEmployeeAndServiceAndActiveTrue(employee, service)
             ?: throw BadRequestException("El empleado no tiene este servicio asociado")
 
-        employeeServiceRepository.delete(employeeService)
+        employeeService.active = false
+        employeeServiceRepository.save(employeeService)
     }
 
     /**
@@ -284,7 +295,7 @@ class EmployeeService(
     @Transactional(readOnly = true)
     fun listWeeklySchedules(userId: Long, employeeId: Long): List<WeeklyScheduleResponse> {
         val employee = ensureCanManageOrSelfManage(userId, employeeId)
-        return weeklyScheduleRepository.findAllByEmployee(employee).map { it.toResponse() }
+        return weeklyScheduleRepository.findAllByEmployeeAndActiveTrue(employee).map { it.toResponse() }
     }
 
     /**
@@ -305,7 +316,7 @@ class EmployeeService(
         }
 
         val existing = weeklyScheduleRepository
-            .findAllByEmployee(employee)
+            .findAllByEmployeeAndActiveTrue(employee)
             .firstOrNull { it.dayOfWeek == request.dayOfWeek }
 
         val saved = weeklyScheduleRepository.save(
@@ -328,10 +339,11 @@ class EmployeeService(
         val employee = ensureCanManageOrSelfManage(userId, employeeId)
         validateSelfManagedOrOwner(userId, employee)
 
-        val weeklySchedule = weeklyScheduleRepository.findByWeeklyScheduleIdAndEmployee(weeklyScheduleId, employee)
+        val weeklySchedule = weeklyScheduleRepository.findByWeeklyScheduleIdAndEmployeeAndActiveTrue(weeklyScheduleId, employee)
             ?: throw ResourceNotFoundException("Horario no encontrado")
 
-        weeklyScheduleRepository.delete(weeklySchedule)
+        weeklySchedule.active = false
+        weeklyScheduleRepository.save(weeklySchedule)
     }
 
     /**
@@ -340,7 +352,7 @@ class EmployeeService(
     @Transactional(readOnly = true)
     fun listScheduleBlocks(userId: Long, employeeId: Long): List<ScheduleBlockResponse> {
         val employee = ensureCanManageOrSelfManage(userId, employeeId)
-        return scheduleBlockRepository.findAllByEmployee(employee).map { it.toResponse() }
+        return scheduleBlockRepository.findAllByEmployeeAndActiveTrue(employee).map { it.toResponse() }
     }
 
     /**
@@ -395,10 +407,11 @@ class EmployeeService(
         val employee = ensureCanManageOrSelfManage(userId, employeeId)
         validateSelfManagedOrOwner(userId, employee)
 
-        val block = scheduleBlockRepository.findByScheduleBlockIdAndEmployee(scheduleBlockId, employee)
+        val block = scheduleBlockRepository.findByScheduleBlockIdAndEmployeeAndActiveTrue(scheduleBlockId, employee)
             ?: throw ResourceNotFoundException("Bloqueo no encontrado")
 
-        scheduleBlockRepository.delete(block)
+        block.active = false
+        scheduleBlockRepository.save(block)
     }
 
     private fun findOwnedBusiness(userId: Long): Business {
@@ -411,6 +424,9 @@ class EmployeeService(
     private fun ensureCanManageOrSelfManage(userId: Long, employeeId: Long): Employee {
         val employee = employeeRepository.findById(employeeId)
             .orElseThrow { ResourceNotFoundException("Empleado no encontrado") }
+        if (!employee.active) {
+            throw ResourceNotFoundException("Empleado no encontrado")
+        }
         val user = userRepository.findByUserId(userId)
             ?: throw ResourceNotFoundException("Usuario no encontrado")
         val ownBusiness = businessRepository.findByOwner(user)

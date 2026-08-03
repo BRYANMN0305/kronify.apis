@@ -48,6 +48,9 @@ data class ScheduleBlock(
     @Column(name = "reason")
     var reason: String? = null,
 
+    @Column(name = "active", nullable = false, columnDefinition = "boolean not null default true")
+    var active: Boolean = true,
+
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
 )

@@ -117,7 +117,7 @@ class ReviewService(
         val user = userRepository.findByUserId(userId)
             ?: throw ResourceNotFoundException("Usuario no encontrado")
         return businessRepository.findByOwner(user)
-            ?: employeeRepository.findAllByUser_UserId(userId)
+            ?: employeeRepository.findAllByUser_UserIdAndActiveTrue(userId)
                 .firstOrNull()
                 ?.business
             ?: throw ResourceNotFoundException("No se encontro un negocio asociado al usuario")

@@ -98,7 +98,7 @@ class AppointmentService(
         val business = findUserBusiness(userId)
         val businessId = business.businessId!!
 
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(request.employeeId, businessId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(request.employeeId, businessId)
             ?: throw BadRequestException("El empleado no pertenece a este negocio")
 
         validateEmployeeActive(employee)
@@ -126,7 +126,7 @@ class AppointmentService(
             .takeIf { it.active }
             ?: throw ResourceNotFoundException("Negocio no encontrado")
 
-        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(request.employeeId, businessId)
+        val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(request.employeeId, businessId)
             ?: throw BadRequestException("El empleado no pertenece a este negocio")
 
         validateEmployeeActive(employee)
@@ -146,11 +146,10 @@ class AppointmentService(
         origin: AppointmentOrigin,
         clientUserId: Long? = null
     ): AppointmentResponse {
-        val service = serviceRepository.findByServiceIdAndBusinessBusinessId(request.serviceId, businessId)
-            ?.takeIf { it.active }
+        val service = serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(request.serviceId, businessId)
             ?: throw BadRequestException("El servicio no pertenece a este negocio")
 
-        if (!employeeServiceRepository.existsByEmployeeAndService(employee, service)) {
+        if (!employeeServiceRepository.existsByEmployeeAndServiceAndActiveTrue(employee, service)) {
             throw BadRequestException("El empleado no tiene asignado este servicio")
         }
 
@@ -284,7 +283,7 @@ class AppointmentService(
         val businessId = business.businessId!!
         val user = userRepository.findByUserId(userId)
             ?: throw ResourceNotFoundException("Usuario no encontrado")
-        val requestingEmployee = employeeRepository.findByUserAndBusiness(user, business)
+        val requestingEmployee = employeeRepository.findByUserAndBusinessAndActiveTrue(user, business)
         val canViewAll = business.owner?.userId == userId || requestingEmployee?.owner == true
 
         // Si no es dueno/admin del negocio, solo puede consultar su propia agenda como empleado.
@@ -292,7 +291,7 @@ class AppointmentService(
             ?: throw ForbiddenOperationException("No tiene permiso para ver la agenda de este negocio")
 
         if (targetEmployeeId != null) {
-            val targetEmployee = employeeRepository.findByEmployeeIdAndBusiness_BusinessId(targetEmployeeId, businessId)
+            val targetEmployee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(targetEmployeeId, businessId)
                 ?: throw ResourceNotFoundException("Empleado no encontrado")
 
             if (!canViewAll && targetEmployee.user?.userId != userId) {
@@ -574,7 +573,7 @@ class AppointmentService(
             throw BadRequestException("La cita esta fuera del horario laboral del empleado")
         }
 
-        val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeek(employee, startAt.dayOfWeek.value)
+        val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, startAt.dayOfWeek.value)
             ?: throw BadRequestException("El empleado no tiene horario configurado para este dia")
 
         val startTime = startAt.toLocalTime()
@@ -600,7 +599,7 @@ class AppointmentService(
         val user = userRepository.findByUserId(userId)
             ?: throw ResourceNotFoundException("Usuario no encontrado")
         return businessRepository.findByOwner(user)
-            ?: employeeRepository.findAllByUser_UserId(userId)
+            ?: employeeRepository.findAllByUser_UserIdAndActiveTrue(userId)
                 .firstOrNull()
                 ?.business
             ?: throw ResourceNotFoundException("No se encontro un negocio asociado al usuario")
@@ -626,7 +625,7 @@ class AppointmentService(
         if (!isOwner && !isTargetEmployee) {
             val user = userRepository.findByUserId(userId)
                 ?: throw ResourceNotFoundException("Usuario no encontrado")
-            val managingEmployee = employeeRepository.findByUserAndBusiness(user, business)
+            val managingEmployee = employeeRepository.findByUserAndBusinessAndActiveTrue(user, business)
             if (managingEmployee == null || !managingEmployee.owner) {
                 throw ForbiddenOperationException("No tiene permiso para gestionar citas en este negocio")
             }

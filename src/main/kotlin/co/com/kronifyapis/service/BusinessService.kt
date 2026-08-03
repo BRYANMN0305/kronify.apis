@@ -88,7 +88,7 @@ class BusinessService(
             planService.assignFreePlanOnCreate(businessId)
         }
 
-        if (request.ownerWorksAsEmployee && !employeeRepository.existsByUserAndBusiness(ownerUser, savedBusiness)) {
+        if (request.ownerWorksAsEmployee && !employeeRepository.existsByUserAndBusinessAndActiveTrue(ownerUser, savedBusiness)) {
             employeeRepository.save(
                 Employee().apply {
                     user = ownerUser

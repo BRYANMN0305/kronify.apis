@@ -26,5 +26,11 @@ data class ServiceRequest(
 
     @field:NotNull(message = "El precio no puede estar vacío")
     @field:Positive(message = "El precio debe ser mayor a 0")
-    val price: Double?
+    val price: Double?,
+
+    /**
+     * Estado activo/pausado del servicio.
+     * Opcional: null mantiene el valor actual (solo en PATCH).
+     */
+    val active: Boolean? = null
 )
