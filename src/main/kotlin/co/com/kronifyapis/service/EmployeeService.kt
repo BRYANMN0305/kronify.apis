@@ -372,7 +372,7 @@ class EmployeeService(
             throw BadRequestException("La fecha de inicio debe ser menor que la de fin")
         }
 
-        if (scheduleBlockRepository.existsByEmployeeAndStartAtLessThanAndEndAtGreaterThan(employee, request.endAt, request.startAt)) {
+        if (scheduleBlockRepository.existsByEmployeeAndStartAtLessThanAndEndAtGreaterThanAndActiveTrue(employee, request.endAt, request.startAt)) {
             throw BadRequestException("El bloqueo se cruza con otro bloqueo existente")
         }
 

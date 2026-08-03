@@ -179,7 +179,7 @@ class AppointmentService(
             throw ConflictException("El empleado ya tiene una cita en este horario")
         }
 
-        val hasBlock = scheduleBlockRepository.existsByEmployeeAndStartAtLessThanAndEndAtGreaterThan(
+        val hasBlock = scheduleBlockRepository.existsByEmployeeAndStartAtLessThanAndEndAtGreaterThanAndActiveTrue(
             employee, occupiedEndAt, startAt
         )
         if (hasBlock) {
@@ -423,7 +423,7 @@ class AppointmentService(
             throw ConflictException("El empleado ya tiene una cita en este horario")
         }
 
-        val hasBlock = scheduleBlockRepository.existsByEmployeeAndStartAtLessThanAndEndAtGreaterThan(
+        val hasBlock = scheduleBlockRepository.existsByEmployeeAndStartAtLessThanAndEndAtGreaterThanAndActiveTrue(
             employee, newOccupiedEndAt, request.startAt
         )
         if (hasBlock) {

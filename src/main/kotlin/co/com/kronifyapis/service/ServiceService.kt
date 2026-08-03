@@ -99,7 +99,6 @@ class ServiceService(
         service.durationMinutes = request.durationMinutes
         service.bufferMinutes = request.bufferMinutes
         service.price = request.price
-        request.active?.let { service.active = it }
 
         return serviceRepository.save(service).toResponse()
     }
