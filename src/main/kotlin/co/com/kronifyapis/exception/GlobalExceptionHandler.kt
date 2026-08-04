@@ -85,7 +85,7 @@ class GlobalExceptionHandler {
         ex: HttpMessageNotReadableException,
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
-        return buildResponse(HttpStatus.BAD_REQUEST, "Solicitud mal formada: ${ex.message}", request)
+        return buildResponse(HttpStatus.BAD_REQUEST, "El cuerpo de la solicitud no tiene el formato esperado", request)
     }
 
     @ExceptionHandler(MissingServletRequestParameterException::class)

@@ -33,7 +33,7 @@ import java.time.LocalTime
 @Table(
     name = "business_opening_hours",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["business_id", "day_of_week", "active"])
+        UniqueConstraint(columnNames = ["business_id", "day_of_week"])
     ]
 )
 data class BusinessOpeningHour(

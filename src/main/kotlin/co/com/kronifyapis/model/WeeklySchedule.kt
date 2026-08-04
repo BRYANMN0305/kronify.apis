@@ -31,7 +31,7 @@ import java.time.LocalTime
 @Table(
     name = "weekly_schedules",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["employee_id", "day_of_week", "active"])
+        UniqueConstraint(columnNames = ["employee_id", "day_of_week"])
     ]
 )
 

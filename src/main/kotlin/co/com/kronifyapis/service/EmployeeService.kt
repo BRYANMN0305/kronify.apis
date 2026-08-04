@@ -263,20 +263,25 @@ class EmployeeService(
         val currentLinks = employeeServiceRepository.findAllByEmployeeAndActiveTrue(employee)
         val currentServiceIds = currentLinks.mapNotNull { it.service?.serviceId }.toSet()
 
-        val servicesToAdd = requestedServiceIds.minus(currentServiceIds).map { serviceId ->
-            serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, businessId)
+        // Reutiliza el vínculo existente (aunque esté inactivo) en lugar de insertar
+        // uno nuevo, para respetar la unicidad (service_id, employee_id).
+        val servicesToAdd = requestedServiceIds.minus(currentServiceIds)
+        for (serviceId in servicesToAdd) {
+            val service = serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, businessId)
                 ?: throw ResourceNotFoundException("Servicio no encontrado")
-        }
 
-        if (servicesToAdd.isNotEmpty()) {
-            employeeServiceRepository.saveAll(
-                servicesToAdd.map { service ->
+            val existingLink = employeeServiceRepository.findByEmployeeAndService(employee, service)
+            if (existingLink != null) {
+                existingLink.active = true
+                employeeServiceRepository.save(existingLink)
+            } else {
+                employeeServiceRepository.save(
                     EmployeeServiceEntity(
                         employee = employee,
                         service = service
                     )
-                }
-            )
+                )
+            }
         }
 
         return employeeServiceRepository.findAllByEmployeeAndActiveTrue(employee)
@@ -329,8 +334,8 @@ class EmployeeService(
             throw BadRequestException("La hora de inicio debe ser menor que la de fin")
         }
 
-        val existing = weeklyScheduleRepository
-            .findAllByEmployeeAndActiveTrue(employee)
+        // Reutiliza la fila del día (activa o inactiva) para no duplicar horarios.
+        val existing = weeklyScheduleRepository.findAllByEmployee(employee)
             .firstOrNull { it.dayOfWeek == request.dayOfWeek }
 
         val saved = weeklyScheduleRepository.save(
@@ -339,6 +344,7 @@ class EmployeeService(
                 dayOfWeek = request.dayOfWeek
                 startTime = request.startTime
                 endTime = request.endTime
+                active = true
             }
         )
 

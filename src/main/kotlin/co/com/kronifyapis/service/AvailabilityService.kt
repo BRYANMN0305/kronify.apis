@@ -134,11 +134,39 @@ class AvailabilityService(
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(employee.employeeId!!, dayEnd, dayStart)
             .filter { it.status != AppointmentStatus.CANCELLED && it.status != AppointmentStatus.NO_SHOW }
 
-        val busyIntervals = blocks.map {
-            BusyInterval(it.startAt.toLocalTime(), it.endAt.toLocalTime())
-        } + busyAppointments.map {
-            val bufferMinutes = it.service?.bufferMinutes ?: 0
-            BusyInterval(it.startAt.toLocalTime(), it.endAt.plusMinutes(bufferMinutes.toLong()).toLocalTime())
+        val busyIntervals = buildList {
+
+            // Un bloque o cita puede cruzar la medianoche (ej: 23:00 - 01:00).
+            // Se recorta el intervalo al día consultado y, si el tramo llega al
+            // borde del día, se representa con LocalTime.MIN / LocalTime.MAX.
+            blocks.forEach { block ->
+                val from = if (block.startAt.isAfter(dayStart)) block.startAt else dayStart
+                val to = if (block.endAt.isBefore(dayEnd)) block.endAt else dayEnd
+                if (from.isBefore(to)) {
+                    add(
+                        BusyInterval(
+                            start = if (from == dayStart) LocalTime.MIN else from.toLocalTime(),
+                            end = if (to == dayEnd) LocalTime.MAX else to.toLocalTime()
+                        )
+                    )
+                }
+            }
+
+            busyAppointments.forEach { appointment ->
+                val bufferMinutes = appointment.service?.bufferMinutes ?: 0
+                val rawStart = appointment.startAt
+                val rawEnd = appointment.endAt.plusMinutes(bufferMinutes.toLong())
+                val from = if (rawStart.isAfter(dayStart)) rawStart else dayStart
+                val to = if (rawEnd.isBefore(dayEnd)) rawEnd else dayEnd
+                if (from.isBefore(to)) {
+                    add(
+                        BusyInterval(
+                            start = if (from == dayStart) LocalTime.MIN else from.toLocalTime(),
+                            end = if (to == dayEnd) LocalTime.MAX else to.toLocalTime()
+                        )
+                    )
+                }
+            }
         }
 
         val employeeName = "${employee.user?.name ?: ""} ${employee.user?.lastName ?: ""}".trim()

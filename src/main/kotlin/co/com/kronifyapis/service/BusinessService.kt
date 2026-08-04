@@ -198,11 +198,15 @@ class BusinessService(
     }
 
     /**
-     * Desactiva los horarios activos actuales del negocio y guarda el nuevo set.
-     * Valida que inicio < fin y que no haya días repetidos.
+     * Guarda el horario de atención del negocio con patrón upsert por día:
+     * reutiliza la fila existente de cada día (activa o no) en lugar de
+     * insertar nuevas, y desactiva los días que ya no están en la petición.
+     * Así existe a lo sumo una fila por (negocio, día) y el soft delete nunca
+     * choca con la restricción única.
      */
     private fun saveOpeningHours(business: Business, requests: List<OpeningHourRequest>) {
         val seenDays = mutableSetOf<Int>()
+        val byDay = requests.associateBy { it.dayOfWeek }
         for (request in requests) {
             if (!seenDays.add(request.dayOfWeek)) {
                 throw BadRequestException("El día ${request.dayOfWeek} está repetido en el horario de atención")
@@ -212,20 +216,21 @@ class BusinessService(
             }
         }
 
-        businessOpeningHourRepository.findAllByBusinessAndActiveTrue(business)
-            .forEach { it.active = false }
-        // Flush obliga a ejecutar los UPDATEs de desactivación ANTES de insertar las
-        // nuevas filas: Hibernate ejecuta los INSERTs antes que los UPDATEs en un mismo
-        // flush, y con la unique (business_id, day_of_week, active) eso rompería.
-        businessOpeningHourRepository.flush()
+        val existing = businessOpeningHourRepository.findAllByBusiness(business)
+
+        // Los días que ya no están en la petición se desactivan (soft delete).
+        existing.filter { it.dayOfWeek !in byDay }.forEach { it.active = false }
+
+        // Upsert por día: reutiliza la fila existente o crea una nueva.
         businessOpeningHourRepository.saveAll(
             requests.map { request ->
-                BusinessOpeningHour().apply {
-                    this.business = business
-                    dayOfWeek = request.dayOfWeek
-                    startTime = request.startTime
-                    endTime = request.endTime
-                }
+                val row = existing.firstOrNull { it.dayOfWeek == request.dayOfWeek }
+                    ?: BusinessOpeningHour().apply { this.business = business }
+                row.dayOfWeek = request.dayOfWeek
+                row.startTime = request.startTime
+                row.endTime = request.endTime
+                row.active = true
+                row
             }
         )
     }

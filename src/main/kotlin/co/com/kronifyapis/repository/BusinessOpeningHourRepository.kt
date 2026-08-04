@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface BusinessOpeningHourRepository : JpaRepository<BusinessOpeningHour, Long> {
 
+    fun findAllByBusiness(business: Business): List<BusinessOpeningHour>
+
     fun findAllByBusinessAndActiveTrue(business: Business): List<BusinessOpeningHour>
 
     fun findByBusinessAndDayOfWeekAndActiveTrue(business: Business, dayOfWeek: Int): BusinessOpeningHour?
