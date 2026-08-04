@@ -214,6 +214,10 @@ class BusinessService(
 
         businessOpeningHourRepository.findAllByBusinessAndActiveTrue(business)
             .forEach { it.active = false }
+        // Flush obliga a ejecutar los UPDATEs de desactivación ANTES de insertar las
+        // nuevas filas: Hibernate ejecuta los INSERTs antes que los UPDATEs en un mismo
+        // flush, y con la unique (business_id, day_of_week, active) eso rompería.
+        businessOpeningHourRepository.flush()
         businessOpeningHourRepository.saveAll(
             requests.map { request ->
                 BusinessOpeningHour().apply {
