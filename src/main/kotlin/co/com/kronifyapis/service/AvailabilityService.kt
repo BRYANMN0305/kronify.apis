@@ -5,9 +5,11 @@ import co.com.kronifyapis.dto.availability.TimeSlotResponse
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.Employee
+import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.Service
 import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.repository.AppointmentRepository
+import co.com.kronifyapis.repository.BusinessOpeningHourRepository
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.EmployeeServiceRepository
@@ -35,6 +37,7 @@ class AvailabilityService(
     private val employeeServiceRepository: EmployeeServiceRepository,
     private val weeklyScheduleRepository: WeeklyScheduleRepository,
     private val scheduleBlockRepository: ScheduleBlockRepository,
+    private val businessOpeningHourRepository: BusinessOpeningHourRepository,
     private val appointmentRepository: AppointmentRepository
 ) {
 
@@ -65,7 +68,7 @@ class AvailabilityService(
         val candidateEmployees = resolveCandidateEmployees(business.businessId!!, service, employeeId)
 
         val slots = candidateEmployees
-            .flatMap { employee -> computeSlotsForEmployee(employee, service, date) }
+            .flatMap { employee -> computeSlotsForEmployee(business, employee, service, date) }
             .sortedBy { it.startAt }
 
         return DayAvailabilityResponse(
@@ -98,15 +101,28 @@ class AvailabilityService(
 
     /**
      * Calcula los slots disponibles para un empleado en una fecha:
-     * - Obtiene el horario laboral de ese dia
+     * - Obtiene el horario de atención del negocio y el horario laboral del empleado de ese día
+     * - La ventana real es la intersección (business hours ∩ employee hours)
      * - Busca bloqueos y citas ocupadas
      * - Usa AvailabilityCalculator para generar los espacios libres
      * - Filtra los slots que ya pasaron (no se puede agendar en pasado)
      */
-    private fun computeSlotsForEmployee(employee: Employee, service: Service, date: LocalDate): List<TimeSlotResponse> {
+    private fun computeSlotsForEmployee(
+        business: Business,
+        employee: Employee,
+        service: Service,
+        date: LocalDate
+    ): List<TimeSlotResponse> {
         val dayOfWeek = date.dayOfWeek.value
         val schedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, dayOfWeek)
             ?: return emptyList()
+
+        val opening = businessOpeningHourRepository.findByBusinessAndDayOfWeekAndActiveTrue(business, dayOfWeek)
+            ?: return emptyList()
+
+        val workingStart = maxOf(schedule.startTime, opening.startTime)
+        val workingEnd = minOf(schedule.endTime, opening.endTime)
+        if (!workingStart.isBefore(workingEnd)) return emptyList()
 
         val dayStart = LocalDateTime.of(date, LocalTime.MIDNIGHT)
         val dayEnd = dayStart.plusDays(1)
@@ -129,8 +145,8 @@ class AvailabilityService(
         val now = LocalDateTime.now()
 
         return AvailabilityCalculator.calculateAvailableSlots(
-            workingStart = schedule.startTime,
-            workingEnd = schedule.endTime,
+            workingStart = workingStart,
+            workingEnd = workingEnd,
             durationMinutes = service.durationMinutes + service.bufferMinutes,
             busyIntervals = busyIntervals,
             stepMinutes = slotStepMinutes.toInt()

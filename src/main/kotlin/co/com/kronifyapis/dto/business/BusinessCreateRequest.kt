@@ -1,5 +1,6 @@
 package co.com.kronifyapis.dto.business
 
+import jakarta.validation.Valid
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Pattern
@@ -37,6 +38,9 @@ data class BusinessCreateRequest(
     val whatsApp: String? = null,
 
     val ownerWorksAsEmployee: Boolean = true,
+
+    @field:Valid
+    val openingHours: List<OpeningHourRequest>? = null,
 
     val planId: Long? = null,
 

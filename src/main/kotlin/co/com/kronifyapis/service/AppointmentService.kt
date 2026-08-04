@@ -16,6 +16,7 @@ import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.model.enums.AppointmentOrigin
 import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.repository.AppointmentRepository
+import co.com.kronifyapis.repository.BusinessOpeningHourRepository
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.CustomerRepository
 import co.com.kronifyapis.repository.EmployeeRepository
@@ -48,6 +49,7 @@ class AppointmentService(
     private val userRepository: UserRepository,
     private val scheduleBlockRepository: ScheduleBlockRepository,
     private val weeklyScheduleRepository: WeeklyScheduleRepository,
+    private val businessOpeningHourRepository: BusinessOpeningHourRepository,
     private val planService: PlanService,
     private val profileValidationHelper: ProfileValidationHelper
 ) {
@@ -565,13 +567,20 @@ class AppointmentService(
     }
 
     /**
-     * Revisa que la cita caiga dentro del horario laboral del empleado
-     * para ese dia de la semana. Si no hay horario configurado, truena.
+     * Revisa que la cita caiga dentro del horario de atención del negocio
+     * y del horario laboral del empleado para ese día de la semana.
+     * Si el negocio no tiene horario configurado para ese día, se rechaza.
      */
     private fun validateWithinWeeklySchedule(employee: Employee, startAt: LocalDateTime, endAt: LocalDateTime) {
         if (startAt.toLocalDate() != endAt.toLocalDate()) {
             throw BadRequestException("La cita esta fuera del horario laboral del empleado")
         }
+
+        val business = employee.business
+            ?: throw BadRequestException("El negocio no tiene horario configurado")
+
+        val opening = businessOpeningHourRepository.findByBusinessAndDayOfWeekAndActiveTrue(business, startAt.dayOfWeek.value)
+            ?: throw BadRequestException("El negocio no tiene horario configurado para este dia")
 
         val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, startAt.dayOfWeek.value)
             ?: throw BadRequestException("El empleado no tiene horario configurado para este dia")
@@ -580,6 +589,9 @@ class AppointmentService(
         val endTime = endAt.toLocalTime()
         if (startTime.isBefore(weeklySchedule.startTime) || endTime.isAfter(weeklySchedule.endTime)) {
             throw BadRequestException("La cita esta fuera del horario laboral del empleado")
+        }
+        if (startTime.isBefore(opening.startTime) || endTime.isAfter(opening.endTime)) {
+            throw BadRequestException("La cita esta fuera del horario de atención del negocio")
         }
     }
 
