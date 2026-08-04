@@ -44,6 +44,17 @@ class EmployeeController(
     }
 
     /**
+     * Devuelve el registro de empleado activo del usuario autenticado.
+     * Permite a un empleado autogestionar su propio horario y bloqueos.
+     */
+    @GetMapping("/me")
+    fun getMyEmployee(
+        @AuthenticationPrincipal user: AuthenticatedUser
+    ): ResponseEntity<EmployeeResponse> {
+        return ResponseEntity.ok(employeeService.getMyEmployee(user.userId))
+    }
+
+    /**
      * Actualiza el permiso de un empleado para gestionar su propio horario.
      */
     @PatchMapping("/{employeeId}/schedule-permission")
