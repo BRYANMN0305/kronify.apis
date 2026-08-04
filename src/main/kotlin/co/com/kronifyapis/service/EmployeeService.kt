@@ -85,7 +85,8 @@ class EmployeeService(
         val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(employeeId, business.businessId!!)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
-        employee.selfManagedSchedule = request.selfManagedSchedule
+        // El dueño siempre autogestiona su horario: el flag es implícito para él
+        employee.selfManagedSchedule = if (employee.owner) true else request.selfManagedSchedule
         return employeeRepository.save(employee).toEmployeeResponse()
     }
 

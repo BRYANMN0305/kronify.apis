@@ -43,7 +43,7 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES}
-  frontend-url: ${FRONTEND_URL:https://tu-app.vercel.app}
+  frontend-url: ${FRONTEND_URL}
   upload:
     path: ${UPLOAD_DIR:./uploads}
   admin:
