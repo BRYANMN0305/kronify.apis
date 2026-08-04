@@ -60,6 +60,19 @@ class EmployeeService(
     }
 
     /**
+     * Devuelve el registro de empleado activo del usuario autenticado.
+     * Permite a un empleado autogestionar su propio horario y bloqueos.
+     */
+    @Transactional(readOnly = true)
+    fun getMyEmployee(userId: Long): EmployeeResponse {
+        val user = userRepository.findByUserId(userId)
+            ?: throw ResourceNotFoundException("Usuario no encontrado")
+        val employee = employeeRepository.findAllByUser_UserIdAndActiveTrue(userId).firstOrNull()
+            ?: throw ResourceNotFoundException("No eres empleado de un negocio")
+        return employee.toEmployeeResponse()
+    }
+
+    /**
      * Cambia el permiso de un empleado para autogestionar su horario.
      */
     @Transactional
