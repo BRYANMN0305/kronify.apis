@@ -32,7 +32,7 @@ import jakarta.persistence.UniqueConstraint
 @Table(
     name = "employee_services",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["service_id", "employee_id", "active"])
+        UniqueConstraint(columnNames = ["service_id", "employee_id"])
     ]
 )
 data class EmployeeService(

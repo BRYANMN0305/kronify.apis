@@ -13,8 +13,10 @@ import jakarta.persistence.UniqueConstraint
 import java.time.LocalTime
 
 /**
- * Modelo que representa el horario semanal de un empleado.
- * Define qué días y en qué horario trabaja un empleado de forma regular.
+ * Modelo que representa el horario semanal de atención de un negocio.
+ * Define en qué días y en qué horario está abierto el negocio de forma regular.
+ * Es el límite máximo para la disponibilidad: la agenda de cada empleado
+ * está contenida dentro de este horario.
  *
  * Anotaciones utilizadas:
  *
@@ -22,29 +24,27 @@ import java.time.LocalTime
  * @Table especifica el nombre de la tabla y sus restricciones únicas.
  * @Id indica que esta columna es la clave primaria de la tabla.
  * @GeneratedValue indica que el valor de esta columna se genera automáticamente.
- * @ManyToOne indica que varios horarios pertenecen a un mismo empleado.
- * @JoinColumn indica la columna usada para la relación con la tabla empleado.
- * @UniqueConstraint evita que un empleado tenga dos horarios para el mismo día.
+ * @ManyToOne indica que varios horarios pertenecen a un mismo negocio.
+ * @JoinColumn indica la columna usada para la relación con la tabla negocio.
+ * @UniqueConstraint evita que un negocio tenga dos horarios para el mismo día.
  */
 
 @Entity
 @Table(
-    name = "weekly_schedules",
+    name = "business_opening_hours",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = ["employee_id", "day_of_week"])
+        UniqueConstraint(columnNames = ["business_id", "day_of_week"])
     ]
 )
-
-//prueba
-data class WeeklySchedule(
+data class BusinessOpeningHour(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "weekly_schedule_id")
-    var weeklyScheduleId: Long? = null,
+    @Column(name = "business_opening_hour_id")
+    var businessOpeningHourId: Long? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", nullable = false)
-    var employee: Employee? = null,
+    @JoinColumn(name = "business_id", nullable = false)
+    var business: Business? = null,
 
     @Column(name = "day_of_week", nullable = false)
     var dayOfWeek: Int = 0,

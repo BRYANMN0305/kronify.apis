@@ -6,6 +6,8 @@ import co.com.kronifyapis.dto.business.BusinessCreateResponse
 import co.com.kronifyapis.dto.business.BusinessSettingsResponse
 import co.com.kronifyapis.dto.business.BusinessUpdateRequest
 import co.com.kronifyapis.dto.business.BusinessUpdateResponse
+import co.com.kronifyapis.dto.business.OpeningHourRequest
+import co.com.kronifyapis.dto.business.OpeningHourResponse
 import co.com.kronifyapis.service.BusinessService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -14,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -63,5 +66,27 @@ class BusinessController(private val businessService: BusinessService) {
         @AuthenticationPrincipal user: AuthenticatedUser
     ): ResponseEntity<BusinessSettingsResponse> {
         return ResponseEntity.ok(businessService.getBusinessSettings(user.userId))
+    }
+
+    /**
+     * Devuelve el horario de atención semanal del negocio del usuario autenticado.
+     */
+    @GetMapping("/opening-hours")
+    fun getOpeningHours(
+        @AuthenticationPrincipal user: AuthenticatedUser
+    ): ResponseEntity<List<OpeningHourResponse>> {
+        return ResponseEntity.ok(businessService.getOpeningHours(user.userId))
+    }
+
+    /**
+     * Reemplaza el horario de atención semanal del negocio del usuario autenticado.
+     */
+    @PutMapping("/opening-hours")
+    fun updateOpeningHours(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @Valid
+        @RequestBody request: List<OpeningHourRequest>
+    ): ResponseEntity<List<OpeningHourResponse>> {
+        return ResponseEntity.ok(businessService.updateOpeningHours(user.userId, request))
     }
 }

@@ -1,9 +1,11 @@
 package co.com.kronifyapis.service
 
+import co.com.kronifyapis.dto.business.OpeningHourResponse
 import co.com.kronifyapis.dto.publicpage.PublicBusinessResponse
 import co.com.kronifyapis.dto.publicpage.PublicEmployeeResponse
 import co.com.kronifyapis.dto.publicpage.PublicServiceResponse
 import co.com.kronifyapis.exception.ResourceNotFoundException
+import co.com.kronifyapis.repository.BusinessOpeningHourRepository
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.EmployeeServiceRepository
@@ -21,7 +23,8 @@ class PublicBusinessService(
     private val businessRepository: BusinessRepository,
     private val serviceRepository: ServiceRepository,
     private val employeeRepository: EmployeeRepository,
-    private val employeeServiceRepository: EmployeeServiceRepository
+    private val employeeServiceRepository: EmployeeServiceRepository,
+    private val businessOpeningHourRepository: BusinessOpeningHourRepository
 ) {
 
     /**
@@ -59,6 +62,17 @@ class PublicBusinessService(
                 )
             }
 
+        val openingHours = businessOpeningHourRepository.findAllByBusinessAndActiveTrue(business)
+            .sortedBy { it.dayOfWeek }
+            .map {
+                OpeningHourResponse(
+                    businessOpeningHourId = it.businessOpeningHourId!!,
+                    dayOfWeek = it.dayOfWeek,
+                    startTime = it.startTime,
+                    endTime = it.endTime
+                )
+            }
+
         return PublicBusinessResponse(
             businessId = businessId,
             name = business.name,
@@ -70,7 +84,8 @@ class PublicBusinessService(
             phoneNumber = business.phoneNumber,
             whatsapp = business.whatsapp,
             services = services,
-            employees = employees
+            employees = employees,
+            openingHours = openingHours
         )
     }
 }

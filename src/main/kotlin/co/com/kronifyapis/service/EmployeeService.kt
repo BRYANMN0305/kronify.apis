@@ -21,6 +21,7 @@ import co.com.kronifyapis.model.ScheduleBlock
 import co.com.kronifyapis.model.WeeklySchedule
 import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.repository.AppointmentRepository
+import co.com.kronifyapis.repository.BusinessOpeningHourRepository
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.EmployeeServiceRepository
@@ -31,6 +32,7 @@ import co.com.kronifyapis.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 /**
  * Servicio para gestionar empleados de un negocio:
@@ -46,6 +48,7 @@ class EmployeeService(
     private val employeeServiceRepository: EmployeeServiceRepository,
     private val weeklyScheduleRepository: WeeklyScheduleRepository,
     private val scheduleBlockRepository: ScheduleBlockRepository,
+    private val businessOpeningHourRepository: BusinessOpeningHourRepository,
     private val appointmentRepository: AppointmentRepository,
     private val planService: PlanService
 ) {
@@ -85,7 +88,8 @@ class EmployeeService(
         val employee = employeeRepository.findByEmployeeIdAndBusiness_BusinessIdAndActiveTrue(employeeId, business.businessId!!)
             ?: throw ResourceNotFoundException("Empleado no encontrado")
 
-        employee.selfManagedSchedule = request.selfManagedSchedule
+        // El dueño siempre autogestiona su horario: el flag es implícito para él
+        employee.selfManagedSchedule = if (employee.owner) true else request.selfManagedSchedule
         return employeeRepository.save(employee).toEmployeeResponse()
     }
 
@@ -262,20 +266,25 @@ class EmployeeService(
         val currentLinks = employeeServiceRepository.findAllByEmployeeAndActiveTrue(employee)
         val currentServiceIds = currentLinks.mapNotNull { it.service?.serviceId }.toSet()
 
-        val servicesToAdd = requestedServiceIds.minus(currentServiceIds).map { serviceId ->
-            serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, businessId)
+        // Reutiliza el vínculo existente (aunque esté inactivo) en lugar de insertar
+        // uno nuevo, para respetar la unicidad (service_id, employee_id).
+        val servicesToAdd = requestedServiceIds.minus(currentServiceIds)
+        for (serviceId in servicesToAdd) {
+            val service = serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, businessId)
                 ?: throw ResourceNotFoundException("Servicio no encontrado")
-        }
 
-        if (servicesToAdd.isNotEmpty()) {
-            employeeServiceRepository.saveAll(
-                servicesToAdd.map { service ->
+            val existingLink = employeeServiceRepository.findByEmployeeAndService(employee, service)
+            if (existingLink != null) {
+                existingLink.active = true
+                employeeServiceRepository.save(existingLink)
+            } else {
+                employeeServiceRepository.save(
                     EmployeeServiceEntity(
                         employee = employee,
                         service = service
                     )
-                }
-            )
+                )
+            }
         }
 
         return employeeServiceRepository.findAllByEmployeeAndActiveTrue(employee)
@@ -328,8 +337,23 @@ class EmployeeService(
             throw BadRequestException("La hora de inicio debe ser menor que la de fin")
         }
 
-        val existing = weeklyScheduleRepository
-            .findAllByEmployeeAndActiveTrue(employee)
+        // El horario del empleado debe quedar dentro del horario de atención del negocio.
+        val business = employee.business
+            ?: throw BadRequestException("El empleado no tiene un negocio asociado")
+
+        val opening = businessOpeningHourRepository.findByBusinessAndDayOfWeekAndActiveTrue(business, request.dayOfWeek)
+            ?: throw BadRequestException("El negocio no tiene horario de atención configurado para este día")
+
+        val timeFormat = DateTimeFormatter.ofPattern("HH:mm")
+        if (request.startTime.isBefore(opening.startTime) || request.endTime.isAfter(opening.endTime)) {
+            throw BadRequestException(
+                "El horario del empleado debe estar dentro del horario de atención del negocio " +
+                    "(${opening.startTime.format(timeFormat)} - ${opening.endTime.format(timeFormat)})"
+            )
+        }
+
+        // Reutiliza la fila del día (activa o inactiva) para no duplicar horarios.
+        val existing = weeklyScheduleRepository.findAllByEmployee(employee)
             .firstOrNull { it.dayOfWeek == request.dayOfWeek }
 
         val saved = weeklyScheduleRepository.save(
@@ -338,6 +362,7 @@ class EmployeeService(
                 dayOfWeek = request.dayOfWeek
                 startTime = request.startTime
                 endTime = request.endTime
+                active = true
             }
         )
 

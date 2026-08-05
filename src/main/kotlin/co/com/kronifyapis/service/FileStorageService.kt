@@ -14,7 +14,7 @@ import java.util.UUID
 class FileStorageService(
     @Value("\${app.upload.path}") private val uploadPath: String
 ) {
-    private val allowedContentTypes = setOf("image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml")
+    private val allowedContentTypes = setOf("image/jpeg", "image/png", "image/webp", "image/gif")
     private val uploadDir: Path = Path.of(uploadPath).toAbsolutePath().normalize()
 
     init {
@@ -28,7 +28,7 @@ class FileStorageService(
             ?: throw BadRequestException("No se pudo determinar el tipo del archivo")
 
         if (contentType !in allowedContentTypes) {
-            throw BadRequestException("Tipo de archivo no permitido: $contentType. Solo se aceptan imágenes (JPEG, PNG, WebP, GIF, SVG)")
+            throw BadRequestException("Tipo de archivo no permitido: $contentType. Solo se aceptan imágenes (JPEG, PNG, WebP, GIF)")
         }
 
         val extension = when (contentType) {
@@ -36,7 +36,6 @@ class FileStorageService(
             "image/png" -> ".png"
             "image/webp" -> ".webp"
             "image/gif" -> ".gif"
-            "image/svg+xml" -> ".svg"
             else -> ".bin"
         }
 
@@ -53,4 +52,31 @@ class FileStorageService(
 
         return filename
     }
+
+    /**
+     * Resuelve un archivo almacenado para servirlo de forma segura.
+     * Valida que el nombre no contenga separadores de ruta, que el archivo
+     * exista y que su extensión esté dentro de la whitelist de imágenes.
+     * Retorna null si el archivo no debe servirse (protege contra SVG, HTML,
+     * path traversal y tipos desconocidos).
+     */
+    fun resolvePublicFile(filename: String): Pair<Path, String>? {
+        val validName = filename.matches(Regex("^[A-Za-z0-9._-]+\$"))
+        if (!validName) return null
+
+        val target = uploadDir.resolve(filename).normalize()
+        if (!target.startsWith(uploadDir) || !Files.isRegularFile(target)) return null
+
+        val extension = target.fileName.toString().substringAfterLast('.', "").lowercase()
+        val contentType = publicContentTypes[extension] ?: return null
+        return target to contentType
+    }
+
+    private val publicContentTypes = mapOf(
+        "jpg" to "image/jpeg",
+        "jpeg" to "image/jpeg",
+        "png" to "image/png",
+        "webp" to "image/webp",
+        "gif" to "image/gif"
+    )
 }
