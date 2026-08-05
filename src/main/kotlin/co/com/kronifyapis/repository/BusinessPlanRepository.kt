@@ -1,4 +1,3 @@
-
 package co.com.kronifyapis.repository
 
 import co.com.kronifyapis.model.BusinessPlan
@@ -21,8 +20,12 @@ interface BusinessPlanRepository : JpaRepository<BusinessPlan, Long> {
 
     fun findAllByBusiness_BusinessIdOrderByStartAtDesc(businessId: Long): List<BusinessPlan>
 
-    // Busca el plan activo con bloqueo pesimista para control de concurrencia en límites
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT bp FROM BusinessPlan bp WHERE bp.business.businessId = :businessId AND bp.active = true")
+    // Busca el plan activo con bloqueo pesimista para control de concurrencia en límites.
+    // Se usa SQL nativo con FOR UPDATE simple (sin alias) porque MariaDB no soporta
+    // la sintaxis "FOR UPDATE OF <alias>" que genera Hibernate con @Lock + JPQL.
+    @Query(
+        value = "SELECT * FROM business_plan WHERE business_id = :businessId AND active = true FOR UPDATE",
+        nativeQuery = true
+    )
     fun findActiveWithLock(@Param("businessId") businessId: Long): BusinessPlan?
 }
