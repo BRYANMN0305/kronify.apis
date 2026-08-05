@@ -16,6 +16,7 @@ data class BusinessSettingsResponse(
     val email: String?,
     val phoneNumber: String?,
     val whatsApp: String?,
+    val openingHours: List<OpeningHourResponse>,
     val active: Boolean,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime

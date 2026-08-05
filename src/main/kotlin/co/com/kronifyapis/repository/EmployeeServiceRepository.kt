@@ -17,6 +17,9 @@ interface EmployeeServiceRepository : JpaRepository<EmployeeService, Long> {
     //Busca por servicio y lo lista
     fun findAllByServiceAndActiveTrue(service: Service): List<EmployeeService>
 
+    //Busca por empleado y servicio (activo o no, para reusar la fila)
+    fun findByEmployeeAndService(employee: Employee, service: Service): EmployeeService?
+
     //Busca por empleado y servicio y lo lista
     fun findByEmployeeAndServiceAndActiveTrue(employee: Employee, service: Service): EmployeeService?
 

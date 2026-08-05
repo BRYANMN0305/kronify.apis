@@ -16,6 +16,7 @@ import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.model.enums.AppointmentOrigin
 import co.com.kronifyapis.model.enums.AppointmentStatus
 import co.com.kronifyapis.repository.AppointmentRepository
+import co.com.kronifyapis.repository.BusinessOpeningHourRepository
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.CustomerRepository
 import co.com.kronifyapis.repository.EmployeeRepository
@@ -48,6 +49,7 @@ class AppointmentService(
     private val userRepository: UserRepository,
     private val scheduleBlockRepository: ScheduleBlockRepository,
     private val weeklyScheduleRepository: WeeklyScheduleRepository,
+    private val businessOpeningHourRepository: BusinessOpeningHourRepository,
     private val planService: PlanService,
     private val profileValidationHelper: ProfileValidationHelper
 ) {
@@ -156,7 +158,12 @@ class AppointmentService(
         // Antes de crear la cita valido limites del plan y resuelvo si el cliente es invitado o registrado.
         planService.validateAppointmentLimit(businessId)
 
-        val customer = resolveCustomer(request, origin, clientUserId)
+        // Lock pesimista sobre el empleado: serializa la creación de citas para el
+        // mismo empleado y evita dobles reservas por concurrencia.
+        employeeRepository.findByIdForUpdate(requireNotNull(employee.employeeId))
+            ?: throw BadRequestException("El empleado no pertenece a este negocio")
+
+        val customer = resolveCustomer(requireNotNull(employee.business), request, origin, clientUserId)
 
         val startAt = request.startAt
         val endAt = startAt.plusMinutes(service.durationMinutes.toLong())
@@ -397,6 +404,10 @@ class AppointmentService(
         val appointment = findAppointmentOrThrow(business.businessId!!, appointmentId)
         val employee = appointment.employee!!
 
+        // Lock pesimista sobre el empleado para evitar reprogramaciones concurrentes.
+        employeeRepository.findByIdForUpdate(requireNotNull(employee.employeeId))
+            ?: throw ResourceNotFoundException("Empleado no encontrado")
+
         val canManage = isOwnerOrTargetEmployee(userId, business, employee)
         if (!canManage && !isClientOwner(userId, appointment)) {
             throw ForbiddenOperationException("No tiene permiso para reprogramar esta cita")
@@ -472,6 +483,7 @@ class AppointmentService(
      * - Si es invitado, valida datos minimos y crea un Customer nuevo.
      */
     private fun resolveCustomer(
+        business: Business,
         request: AppointmentCreateRequest,
         origin: AppointmentOrigin,
         clientUserId: Long?
@@ -508,34 +520,42 @@ class AppointmentService(
         // Para invitados pido datos minimos porque no hay cuenta de usuario de donde tomarlos.
         validateGuestCustomerData(request)
 
-        request.customerEmail?.trim()?.lowercase()?.takeIf { it.isNotBlank() }?.let { email ->
-            val existingByEmail = customerRepository.findByEmail(email)
-            if (existingByEmail.isNotEmpty()) {
-                val existing = existingByEmail.first()
-                existing.name = request.customerName!!.trim()
-                existing.lastName = request.customerLastName?.trim()
-                existing.phoneNumber = request.customerPhone!!.trim()
-                existing.email = email
-                return customerRepository.save(existing)
+        // Los invitados se buscan/crean SOLO dentro del negocio: nunca se reutiliza
+        // ni sobreescribe un cliente de otro negocio.
+        val businessId = requireNotNull(business.businessId)
+        val email = request.customerEmail?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+        if (email != null) {
+            val existingByEmail = customerRepository.findFirstByBusinessBusinessIdAndEmail(businessId, email)
+            if (existingByEmail != null) {
+                return updateGuestCustomer(existingByEmail, request, email)
             }
         }
 
         val phone = request.customerPhone!!.trim()
-        val existingByPhone = customerRepository.findByPhoneNumber(phone)
-        if (existingByPhone.isNotEmpty()) {
-            val existing = existingByPhone.first()
-            existing.name = request.customerName!!.trim()
-            existing.lastName = request.customerLastName?.trim()
-            existing.email = request.customerEmail?.trim()
-            return customerRepository.save(existing)
+        val existingByPhone = customerRepository.findFirstByBusinessBusinessIdAndPhoneNumber(businessId, phone)
+        if (existingByPhone != null) {
+            return updateGuestCustomer(existingByPhone, request, email)
         }
 
-        val customer = Customer(
-            name = request.customerName!!.trim(),
-            lastName = request.customerLastName?.trim(),
-            phoneNumber = phone,
-            email = request.customerEmail?.trim()?.lowercase()
+        return customerRepository.save(
+            Customer(
+                business = business,
+                name = request.customerName!!.trim(),
+                lastName = request.customerLastName?.trim(),
+                phoneNumber = phone,
+                email = email
+            )
         )
+    }
+
+    /**
+     * Actualiza los datos de un cliente invitado perteneciente al negocio de la reserva.
+     */
+    private fun updateGuestCustomer(customer: Customer, request: AppointmentCreateRequest, email: String?): Customer {
+        customer.name = request.customerName!!.trim()
+        customer.lastName = request.customerLastName?.trim()
+        customer.phoneNumber = request.customerPhone!!.trim()
+        customer.email = email
         return customerRepository.save(customer)
     }
 
@@ -565,13 +585,20 @@ class AppointmentService(
     }
 
     /**
-     * Revisa que la cita caiga dentro del horario laboral del empleado
-     * para ese dia de la semana. Si no hay horario configurado, truena.
+     * Revisa que la cita caiga dentro del horario de atención del negocio
+     * y del horario laboral del empleado para ese día de la semana.
+     * Si el negocio no tiene horario configurado para ese día, se rechaza.
      */
     private fun validateWithinWeeklySchedule(employee: Employee, startAt: LocalDateTime, endAt: LocalDateTime) {
         if (startAt.toLocalDate() != endAt.toLocalDate()) {
             throw BadRequestException("La cita esta fuera del horario laboral del empleado")
         }
+
+        val business = employee.business
+            ?: throw BadRequestException("El negocio no tiene horario configurado")
+
+        val opening = businessOpeningHourRepository.findByBusinessAndDayOfWeekAndActiveTrue(business, startAt.dayOfWeek.value)
+            ?: throw BadRequestException("El negocio no tiene horario configurado para este dia")
 
         val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, startAt.dayOfWeek.value)
             ?: throw BadRequestException("El empleado no tiene horario configurado para este dia")
@@ -580,6 +607,9 @@ class AppointmentService(
         val endTime = endAt.toLocalTime()
         if (startTime.isBefore(weeklySchedule.startTime) || endTime.isAfter(weeklySchedule.endTime)) {
             throw BadRequestException("La cita esta fuera del horario laboral del empleado")
+        }
+        if (startTime.isBefore(opening.startTime) || endTime.isAfter(opening.endTime)) {
+            throw BadRequestException("La cita esta fuera del horario de atención del negocio")
         }
     }
 

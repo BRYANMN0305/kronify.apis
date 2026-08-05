@@ -5,13 +5,17 @@ import co.com.kronifyapis.dto.business.BusinessCreateResponse
 import co.com.kronifyapis.dto.business.BusinessSettingsResponse
 import co.com.kronifyapis.dto.business.BusinessUpdateRequest
 import co.com.kronifyapis.dto.business.BusinessUpdateResponse
+import co.com.kronifyapis.dto.business.OpeningHourRequest
+import co.com.kronifyapis.dto.business.OpeningHourResponse
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.model.enums.ProfileType
 import co.com.kronifyapis.exception.ConflictException
 import co.com.kronifyapis.exception.ForbiddenOperationException
 import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.Business
+import co.com.kronifyapis.model.BusinessOpeningHour
 import co.com.kronifyapis.model.Employee
+import co.com.kronifyapis.repository.BusinessOpeningHourRepository
 import co.com.kronifyapis.repository.BusinessRepository
 import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.PlanRepository
@@ -30,6 +34,7 @@ class BusinessService(
     private val employeeRepository: EmployeeRepository,
     private val userRepository: UserRepository,
     private val planRepository: PlanRepository,
+    private val businessOpeningHourRepository: BusinessOpeningHourRepository,
     private val planService: PlanService,
     private val profileValidationHelper: ProfileValidationHelper
 ) {
@@ -100,6 +105,8 @@ class BusinessService(
             )
         }
 
+        request.openingHours?.let { saveOpeningHours(savedBusiness, it) }
+
         return savedBusiness.toCreateResponse()
     }
 
@@ -120,7 +127,7 @@ class BusinessService(
         val business = businessRepository.findByOwner(ownerUser)
             ?: throw ResourceNotFoundException("Negocio no encontrado")
 
-        return business.toSettingsResponse()
+        return business.toSettingsResponse(listOpeningHours(business))
     }
 
     /**
@@ -153,7 +160,7 @@ class BusinessService(
         )
     }
 
-    private fun Business.toSettingsResponse(): BusinessSettingsResponse {
+    private fun Business.toSettingsResponse(openingHours: List<OpeningHourResponse>): BusinessSettingsResponse {
         return BusinessSettingsResponse(
             name = name,
             category = category,
@@ -163,10 +170,91 @@ class BusinessService(
             email = email,
             phoneNumber = phoneNumber,
             whatsApp = whatsapp,
+            openingHours = openingHours,
             active = active,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
+    }
+
+    /**
+     * Lista los horarios de atención semanales configurados para el negocio
+     * del usuario autenticado (solo dueño).
+     */
+    @Transactional(readOnly = true)
+    fun getOpeningHours(ownerId: Long): List<OpeningHourResponse> {
+        return listOpeningHours(findOwnedBusiness(ownerId))
+    }
+
+    /**
+     * Reemplaza por completo el horario de atención semanal del negocio
+     * (solo dueño). Los horarios previos se desactivan (soft delete).
+     */
+    @Transactional
+    fun updateOpeningHours(ownerId: Long, requests: List<OpeningHourRequest>): List<OpeningHourResponse> {
+        val business = findOwnedBusiness(ownerId)
+        saveOpeningHours(business, requests)
+        return listOpeningHours(business)
+    }
+
+    /**
+     * Guarda el horario de atención del negocio con patrón upsert por día:
+     * reutiliza la fila existente de cada día (activa o no) en lugar de
+     * insertar nuevas, y desactiva los días que ya no están en la petición.
+     * Así existe a lo sumo una fila por (negocio, día) y el soft delete nunca
+     * choca con la restricción única.
+     */
+    private fun saveOpeningHours(business: Business, requests: List<OpeningHourRequest>) {
+        val seenDays = mutableSetOf<Int>()
+        val byDay = requests.associateBy { it.dayOfWeek }
+        for (request in requests) {
+            if (!seenDays.add(request.dayOfWeek)) {
+                throw BadRequestException("El día ${request.dayOfWeek} está repetido en el horario de atención")
+            }
+            if (request.startTime >= request.endTime) {
+                throw BadRequestException("La hora de inicio debe ser menor que la de fin")
+            }
+        }
+
+        val existing = businessOpeningHourRepository.findAllByBusiness(business)
+
+        // Los días que ya no están en la petición se desactivan (soft delete).
+        existing.filter { it.dayOfWeek !in byDay }.forEach { it.active = false }
+
+        // Upsert por día: reutiliza la fila existente o crea una nueva.
+        businessOpeningHourRepository.saveAll(
+            requests.map { request ->
+                val row = existing.firstOrNull { it.dayOfWeek == request.dayOfWeek }
+                    ?: BusinessOpeningHour().apply { this.business = business }
+                row.dayOfWeek = request.dayOfWeek
+                row.startTime = request.startTime
+                row.endTime = request.endTime
+                row.active = true
+                row
+            }
+        )
+    }
+
+    private fun listOpeningHours(business: Business): List<OpeningHourResponse> {
+        return businessOpeningHourRepository.findAllByBusinessAndActiveTrue(business)
+            .sortedBy { it.dayOfWeek }
+            .map { it.toResponse() }
+    }
+
+    private fun BusinessOpeningHour.toResponse(): OpeningHourResponse {
+        return OpeningHourResponse(
+            businessOpeningHourId = requireNotNull(businessOpeningHourId),
+            dayOfWeek = dayOfWeek,
+            startTime = startTime,
+            endTime = endTime
+        )
+    }
+
+    private fun findOwnedBusiness(ownerId: Long): Business {
+        val ownerUser = userRepository.findByUserId(ownerId)
+            ?: throw ResourceNotFoundException("Usuario no encontrado")
+        return businessRepository.findByOwner(ownerUser)
+            ?: throw ForbiddenOperationException("No tiene permiso para gestionar este negocio")
     }
 
 }

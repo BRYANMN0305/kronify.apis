@@ -3,13 +3,22 @@ package co.com.kronifyapis.repository
 import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.User
+import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 /**
  * Repositorio que gestiona las operaciones para los empleados.
  */
 
 interface EmployeeRepository : JpaRepository<Employee, Long> {
+
+    //Bloquea la fila del empleado para serializar la creación/reprogramación de citas
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from Employee e where e.employeeId = :employeeId")
+    fun findByIdForUpdate(@Param("employeeId") employeeId: Long): Employee?
 
     //Verifica si existe un empleado activo por usuario y negocio
     fun existsByUserAndBusinessAndActiveTrue(user: User, business: Business): Boolean
