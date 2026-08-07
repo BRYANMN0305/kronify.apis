@@ -12,4 +12,10 @@ interface OauthAccountRepository : JpaRepository<OauthAccount, Long> {
 
     //Busca todas las cuentas OAuth por usuario
     fun findAllByUser_UserId(userId: Long): List<OauthAccount>
+
+    //Verifica si el proveedor ya vinculó ese id externo de usuario
+    fun existsByProviderAndProviderUserId(provider: String, providerUserId: String): Boolean
+
+    //Verifica si el usuario ya tiene ese proveedor vinculado
+    fun existsByProviderAndUser_UserId(provider: String, userId: Long): Boolean
 }

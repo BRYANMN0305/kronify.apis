@@ -1,12 +1,15 @@
 package co.com.kronifyapis.controller
 
+import co.com.kronifyapis.dto.auth.AuthenticatedUser
 import co.com.kronifyapis.dto.auth.LoginRequest
+import co.com.kronifyapis.dto.auth.OAuthProfileRequest
 import co.com.kronifyapis.dto.auth.TokenResponse
 import co.com.kronifyapis.dto.auth.UserRegisterRequest
 import co.com.kronifyapis.service.AuthService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -38,5 +41,17 @@ class AuthController (private val authService: AuthService){
         return ResponseEntity
             .ok(authService.login(request))
 
+    }
+
+    /**
+     * Asigna el tipo de perfil tras el primer login por OAuth y
+     * devuelve un token nuevo con los claims actualizados.
+     */
+    @PostMapping("/oauth/profile")
+    fun selectOAuthProfile(
+        @AuthenticationPrincipal user: AuthenticatedUser,
+        @Valid @RequestBody request: OAuthProfileRequest
+    ): ResponseEntity<TokenResponse> {
+        return ResponseEntity.ok(authService.selectOAuthProfile(user.userId, request.profileType))
     }
 }

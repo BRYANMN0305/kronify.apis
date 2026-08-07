@@ -12,6 +12,31 @@ spring:
     name: kronify-apis
   config:
     import: optional:file:.env[.properties]
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${OAUTH_GOOGLE_CLIENT_ID}
+            client-secret: ${OAUTH_GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - email
+              - profile
+          azure:
+            client-id: ${OAUTH_MICROSOFT_CLIENT_ID}
+            client-secret: ${OAUTH_MICROSOFT_CLIENT_SECRET}
+            scope:
+              - openid
+              - email
+              - profile
+        provider:
+          azure:
+            authorization-uri: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+            token-uri: https://login.microsoftonline.com/common/oauth2/v2.0/token
+            user-info-uri: https://graph.microsoft.com/oidc/userinfo
+            jwk-set-uri: https://login.microsoftonline.com/common/discovery/v2.0/keys
+            user-name-attribute: sub
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
