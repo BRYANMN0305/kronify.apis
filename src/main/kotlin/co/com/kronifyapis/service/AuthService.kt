@@ -2,6 +2,7 @@ package co.com.kronifyapis.service
 
 import co.com.kronifyapis.dto.auth.LoginRequest
 import co.com.kronifyapis.dto.auth.LinkedAuthMethodResponse
+import co.com.kronifyapis.dto.auth.OAuthLoginResult
 import co.com.kronifyapis.dto.auth.TokenResponse
 import co.com.kronifyapis.dto.auth.UserRegisterRequest
 import co.com.kronifyapis.model.enums.StatusType
@@ -11,11 +12,14 @@ import co.com.kronifyapis.exception.ConflictException
 import co.com.kronifyapis.exception.InvalidCredentialsException
 import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.Employee
+import co.com.kronifyapis.model.OauthAccount
 import co.com.kronifyapis.model.User
+import co.com.kronifyapis.model.enums.ProfileType
 import co.com.kronifyapis.repository.EmployeeInvitationRepository
 import co.com.kronifyapis.repository.EmployeeRepository
 import co.com.kronifyapis.repository.OauthAccountRepository
 import co.com.kronifyapis.repository.UserRepository
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -82,9 +86,103 @@ class AuthService(
         if (!user.active || !passwordEncoder.matches(request.password, user.passwordHash)) {
             throw InvalidCredentialsException("Correo o contraseña incorrectas")
         }
+        // Las cuentas creadas solo por OAuth tienen passwordHash vacío, por lo que
+        // passwordEncoder.matches falla naturalmente y no pueden entrar por contraseña.
 
         val token = jwtService.generateToken(user)
         return user.toTokenResponse(token, jwtService.getExpirationSeconds())
+    }
+
+    /**
+     * Inicia/login mediante un proveedor OAuth (Google, Microsoft).
+     * Si el email ya existe, vincula la cuenta OAuth a ese usuario (email verificado
+     * por el proveedor = misma identidad). Si no existe, crea el usuario con
+     * passwordHash vacío (no podrá iniciar sesión por contraseña) y enlaza
+     * invitaciones pendientes como en el registro normal.
+     */
+    @Transactional
+    fun loginWithOAuth(
+        provider: String,
+        providerUserId: String,
+        email: String?,
+        name: String?,
+        lastName: String?
+    ): OAuthLoginResult {
+        val normalizedEmail = email?.trim()?.lowercase()
+        if (normalizedEmail.isNullOrBlank()) {
+            throw BadRequestException("El proveedor no devolvió un correo")
+        }
+
+        var user = userRepository.findByEmail(normalizedEmail)
+        val newUser = user == null
+
+        if (user == null) {
+            user = userRepository.save(
+                User(
+                    name = name?.takeIf { it.isNotBlank() } ?: "Usuario",
+                    lastName = lastName?.takeIf { it.isNotBlank() } ?: "",
+                    email = normalizedEmail,
+                    profileType = ProfileType.CLIENT,
+                    passwordHash = "",
+                    verifiedEmail = true
+                )
+            )
+            linkInvitationIfNeeded(user)
+        } else {
+            if (!user.active) {
+                throw InvalidCredentialsException("Tu cuenta está desactivada")
+            }
+            if (!user.verifiedEmail) {
+                user.verifiedEmail = true
+                userRepository.save(user)
+            }
+        }
+
+        linkOAuthAccountIfMissing(user, provider, providerUserId, normalizedEmail)
+
+        val token = jwtService.generateToken(user)
+        return OAuthLoginResult(
+            token = user.toTokenResponse(token, jwtService.getExpirationSeconds()),
+            newUser = newUser
+        )
+    }
+
+    /**
+     * Actualiza el tipo de perfil elegido por un usuario nuevo de OAuth
+     * y emite un token nuevo con los claims actualizados.
+     */
+    @Transactional
+    fun selectOAuthProfile(userId: Long, profileType: ProfileType): TokenResponse {
+        val user = userRepository.findByUserId(userId)
+            ?: throw ResourceNotFoundException("Usuario no encontrado")
+
+        user.profileType = profileType
+        userRepository.save(user)
+
+        val token = jwtService.generateToken(user)
+        return user.toTokenResponse(token, jwtService.getExpirationSeconds())
+    }
+
+    /**
+     * Vincula la cuenta del proveedor al usuario si aún no está vinculada.
+     * Ignora conflictos de unicidad (solicitudes concurrentes / re-vinculación).
+     */
+    private fun linkOAuthAccountIfMissing(user: User, provider: String, providerUserId: String, email: String) {
+        if (oauthAccountRepository.existsByProviderAndProviderUserId(provider, providerUserId)) return
+        if (oauthAccountRepository.existsByProviderAndUser_UserId(provider, user.userId!!)) return
+
+        try {
+            oauthAccountRepository.save(
+                OauthAccount().apply {
+                    this.user = user
+                    this.provider = provider
+                    this.providerUserId = providerUserId
+                    this.providerEmail = email
+                }
+            )
+        } catch (_: DataIntegrityViolationException) {
+            // Ya vinculada en otra solicitud: se ignora
+        }
     }
 
     /**
