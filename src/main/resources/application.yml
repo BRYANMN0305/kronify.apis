@@ -20,6 +20,7 @@ spring:
             client-id: ${OAUTH_GOOGLE_CLIENT_ID}
             client-secret: ${OAUTH_GOOGLE_CLIENT_SECRET}
             authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/google"
             scope:
               - openid
               - email
@@ -28,6 +29,7 @@ spring:
             client-id: ${OAUTH_MICROSOFT_CLIENT_ID}
             client-secret: ${OAUTH_MICROSOFT_CLIENT_SECRET}
             authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/azure"
             scope:
               - openid
               - email
