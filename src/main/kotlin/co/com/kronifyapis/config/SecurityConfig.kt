@@ -5,10 +5,12 @@ import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.context.annotation.Lazy
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import jakarta.servlet.http.HttpServletResponse
 
 /**
  * Configuración de seguridad de la aplicación.
@@ -21,8 +23,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 class SecurityConfig(
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
     private val adminApiKeyFilter: AdminApiKeyFilter,
-    private val oauth2LoginSuccessHandler: OAuth2LoginSuccessHandler,
-    private val oauth2LoginFailureHandler: OAuth2LoginFailureHandler
+    @Lazy private val oauth2LoginSuccessHandler: OAuth2LoginSuccessHandler,
+    @Lazy private val oauth2LoginFailureHandler: OAuth2LoginFailureHandler
 ) {
     /**
      * Bean para codificar contraseñas con BCrypt.
@@ -69,6 +71,12 @@ class SecurityConfig(
             .oauth2Login {
                 it.successHandler(oauth2LoginSuccessHandler)
                 it.failureHandler(oauth2LoginFailureHandler)
+            }
+            .exceptionHandling {
+                // En vez de redirigir a /login, devuelve 401 directamente
+                it.authenticationEntryPoint { _, response, _ ->
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                }
             }
             .addFilterBefore(adminApiKeyFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
