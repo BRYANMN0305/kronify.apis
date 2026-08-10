@@ -585,8 +585,9 @@ class AppointmentService(
     }
 
     /**
-     * Revisa que la cita caiga dentro del horario de atención del negocio
-     * y del horario laboral del empleado para ese día de la semana.
+     * Revisa que la cita caiga dentro del horario de atención del negocio.
+     * Si el empleado es autogestionado, también debe caer dentro de su horario
+     * semanal para ese día de la semana.
      * Si el negocio no tiene horario configurado para ese día, se rechaza.
      */
     private fun validateWithinWeeklySchedule(employee: Employee, startAt: LocalDateTime, endAt: LocalDateTime) {
@@ -600,16 +601,19 @@ class AppointmentService(
         val opening = businessOpeningHourRepository.findByBusinessAndDayOfWeekAndActiveTrue(business, startAt.dayOfWeek.value)
             ?: throw BadRequestException("El negocio no tiene horario configurado para este dia")
 
-        val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, startAt.dayOfWeek.value)
-            ?: throw BadRequestException("El empleado no tiene horario configurado para este dia")
-
         val startTime = startAt.toLocalTime()
         val endTime = endAt.toLocalTime()
-        if (startTime.isBefore(weeklySchedule.startTime) || endTime.isAfter(weeklySchedule.endTime)) {
-            throw BadRequestException("La cita esta fuera del horario laboral del empleado")
-        }
         if (startTime.isBefore(opening.startTime) || endTime.isAfter(opening.endTime)) {
             throw BadRequestException("La cita esta fuera del horario de atención del negocio")
+        }
+
+        if (employee.selfManagedSchedule) {
+            val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, startAt.dayOfWeek.value)
+                ?: throw BadRequestException("El empleado no tiene horario configurado para este dia")
+
+            if (startTime.isBefore(weeklySchedule.startTime) || endTime.isAfter(weeklySchedule.endTime)) {
+                throw BadRequestException("La cita esta fuera del horario laboral del empleado")
+            }
         }
     }
 

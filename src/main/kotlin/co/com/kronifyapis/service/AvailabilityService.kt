@@ -101,8 +101,9 @@ class AvailabilityService(
 
     /**
      * Calcula los slots disponibles para un empleado en una fecha:
-     * - Obtiene el horario de atención del negocio y el horario laboral del empleado de ese día
-     * - La ventana real es la intersección (business hours ∩ employee hours)
+     * - Obtiene el horario de atención del negocio para ese día
+     * - Si el empleado es autogestionado, la ventana es su horario semanal
+     *   (limitado al horario del negocio); si no, es el horario del negocio
      * - Busca bloqueos y citas ocupadas
      * - Usa AvailabilityCalculator para generar los espacios libres
      * - Filtra los slots que ya pasaron (no se puede agendar en pasado)
@@ -114,14 +115,21 @@ class AvailabilityService(
         date: LocalDate
     ): List<TimeSlotResponse> {
         val dayOfWeek = date.dayOfWeek.value
-        val schedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, dayOfWeek)
-            ?: return emptyList()
 
         val opening = businessOpeningHourRepository.findByBusinessAndDayOfWeekAndActiveTrue(business, dayOfWeek)
             ?: return emptyList()
 
-        val workingStart = maxOf(schedule.startTime, opening.startTime)
-        val workingEnd = minOf(schedule.endTime, opening.endTime)
+        val workingStart: LocalTime
+        val workingEnd: LocalTime
+        if (employee.selfManagedSchedule) {
+            val schedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, dayOfWeek)
+                ?: return emptyList()
+            workingStart = maxOf(schedule.startTime, opening.startTime)
+            workingEnd = minOf(schedule.endTime, opening.endTime)
+        } else {
+            workingStart = opening.startTime
+            workingEnd = opening.endTime
+        }
         if (!workingStart.isBefore(workingEnd)) return emptyList()
 
         val dayStart = LocalDateTime.of(date, LocalTime.MIDNIGHT)
