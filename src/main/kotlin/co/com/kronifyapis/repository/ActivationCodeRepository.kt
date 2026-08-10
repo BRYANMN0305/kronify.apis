@@ -8,8 +8,6 @@ interface ActivationCodeRepository : JpaRepository<ActivationCode, Long> {
 
     fun findByCodeAndActiveTrue(code: String): Optional<ActivationCode>
 
-    fun findByPlan_PlanIdAndActiveTrue(planId: Long): List<ActivationCode>
-
     fun findByUsedAndActiveTrue(used: Boolean): List<ActivationCode>
 
     fun findAllByActiveTrue(): List<ActivationCode>

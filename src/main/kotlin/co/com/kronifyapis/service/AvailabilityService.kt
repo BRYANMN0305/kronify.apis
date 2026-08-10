@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 
 /**
  * Servicio que consulta la disponibilidad de un negocio para un servicio y fecha especificos.
@@ -42,6 +43,7 @@ class AvailabilityService(
 ) {
 
     private val slotStepMinutes = 15L
+    private val COLOMBIA_ZONE = ZoneId.of("America/Bogota")
 
     /**
      * Obtiene los horarios disponibles para un servicio en una fecha.
@@ -61,7 +63,7 @@ class AvailabilityService(
         val service = serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, business.businessId!!)
             ?: throw ResourceNotFoundException("Servicio no encontrado para este negocio")
 
-        if (date.isBefore(LocalDate.now())) {
+        if (date.isBefore(LocalDate.now(COLOMBIA_ZONE))) {
             throw BadRequestException("La fecha debe ser hoy o en el futuro")
         }
 
@@ -178,7 +180,7 @@ class AvailabilityService(
         }
 
         val employeeName = "${employee.user?.name ?: ""} ${employee.user?.lastName ?: ""}".trim()
-        val now = LocalDateTime.now()
+        val now = LocalDateTime.now(COLOMBIA_ZONE)
 
         return AvailabilityCalculator.calculateAvailableSlots(
             workingStart = workingStart,

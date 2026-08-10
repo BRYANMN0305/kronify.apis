@@ -1,7 +1,6 @@
 package co.com.kronifyapis.dto.business
 
 import jakarta.validation.constraints.Email
-import jakarta.validation.constraints.Pattern
 
 /**
  * DTO que recibe los datos para actualizar un negocio existente.

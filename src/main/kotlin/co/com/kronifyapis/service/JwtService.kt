@@ -62,13 +62,6 @@ class JwtService(
     fun getExpirationSeconds(): Long = expirationMinutes * 60
 
     /**
-     * Extrae el email del token JWT.
-     */
-    fun extractEmail(token: String): String? {
-        return extractAllClaims(token)?.get("email", String::class.java)
-    }
-
-    /**
      * Extrae todos los datos del usuario autenticado desde el token JWT.
      * Si algo falla o el token es invalido, devuelve null.
      */

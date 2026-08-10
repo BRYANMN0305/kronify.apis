@@ -26,7 +26,4 @@ interface EmployeeInvitationRepository : JpaRepository<EmployeeInvitation, Long>
 
     //Busca una invitación por su token
     fun findByToken(token: String): EmployeeInvitation?
-
-    //Busca una invitación por su token y estado
-    fun findByTokenAndStatus(token: String, status: StatusType): EmployeeInvitation?
 }

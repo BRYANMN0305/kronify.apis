@@ -13,7 +13,6 @@ import co.com.kronifyapis.dto.services.ServiceResponse
 import co.com.kronifyapis.exception.ForbiddenOperationException
 import co.com.kronifyapis.exception.BadRequestException
 import co.com.kronifyapis.exception.ResourceNotFoundException
-import co.com.kronifyapis.model.Appointment
 import co.com.kronifyapis.model.Business
 import co.com.kronifyapis.model.Employee
 import co.com.kronifyapis.model.EmployeeService as EmployeeServiceEntity
@@ -32,6 +31,7 @@ import co.com.kronifyapis.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
@@ -52,6 +52,8 @@ class EmployeeService(
     private val appointmentRepository: AppointmentRepository,
     private val planService: PlanService
 ) {
+
+    private val COLOMBIA_ZONE = ZoneId.of("America/Bogota")
 
     /**
      * Lista los empleados activos del negocio del usuario autenticado.
@@ -144,7 +146,7 @@ class EmployeeService(
         if (request.active == false && employee.active) {
             val futureAppointments = appointmentRepository
                 .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
-                    employee.employeeId!!, LocalDateTime.now().plusYears(1), LocalDateTime.now()
+                    employee.employeeId!!, LocalDateTime.now(COLOMBIA_ZONE).plusYears(1), LocalDateTime.now(COLOMBIA_ZONE)
                 )
                 .filter { it.status == AppointmentStatus.PENDING || it.status == AppointmentStatus.CONFIRMED }
             if (futureAppointments.isNotEmpty()) {
@@ -176,7 +178,7 @@ class EmployeeService(
 
         val futureAppointments = appointmentRepository
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
-                employee.employeeId!!, LocalDateTime.now().plusYears(1), LocalDateTime.now()
+                employee.employeeId!!, LocalDateTime.now(COLOMBIA_ZONE).plusYears(1), LocalDateTime.now(COLOMBIA_ZONE)
             )
             .filter { it.status == AppointmentStatus.PENDING || it.status == AppointmentStatus.CONFIRMED }
 
@@ -207,7 +209,7 @@ class EmployeeService(
 
         val futureAppointments = appointmentRepository
             .findByEmployee_EmployeeIdAndStartAtLessThanAndEndAtGreaterThan(
-                employee.employeeId!!, LocalDateTime.now().plusYears(1), LocalDateTime.now()
+                employee.employeeId!!, LocalDateTime.now(COLOMBIA_ZONE).plusYears(1), LocalDateTime.now(COLOMBIA_ZONE)
             )
             .filter { it.status == AppointmentStatus.PENDING || it.status == AppointmentStatus.CONFIRMED }
         if (futureAppointments.isNotEmpty()) {

@@ -208,23 +208,6 @@ class AppointmentService(
         return saved.toResponse(service.name, service.durationMinutes, employee, customer)
     }
 
-    /**
-     * Lista todas las citas de un negocio. Usa el userId para
-     * encontrar el negocio asociado.
-     */
-    @Transactional(readOnly = true)
-    fun listAppointments(userId: Long): List<AppointmentResponse> {
-        val business = findUserBusiness(userId)
-        val businessId = business.businessId!!
-
-        return appointmentRepository.findAllByBusiness_BusinessId(businessId).map { appointment ->
-            val service = appointment.service!!
-            val employee = appointment.employee!!
-            val customer = appointment.customer!!
-            appointment.toResponse(service.name, service.durationMinutes, employee, customer)
-        }
-    }
-
     @Transactional(readOnly = true)
     fun listAppointments(userId: Long, pageable: Pageable): Page<AppointmentResponse> {
         val business = findUserBusiness(userId)
@@ -247,29 +230,6 @@ class AppointmentService(
                 val customer = appointment.customer!!
                 appointment.toResponse(service.name, service.durationMinutes, employee, customer)
             }
-    }
-
-    /**
-     * Obtiene la agenda de uno o varios empleados en un rango de fechas.
-     * Si no se pasa employeeId y el usuario es dueno, ve la agenda de todos.
-     * Los empleados normales solo ven su propia agenda.
-     */
-    @Transactional(readOnly = true)
-    fun getEmployeeAgenda(
-        userId: Long,
-        startDate: LocalDate,
-        endDate: LocalDate,
-        employeeId: Long?
-    ): List<AppointmentResponse> {
-        return getCalendarAppointments(
-            userId = userId,
-            startDate = startDate,
-            endDate = endDate,
-            employeeId = employeeId,
-            serviceId = null,
-            status = null,
-            origin = null
-        )
     }
 
     @Transactional(readOnly = true)

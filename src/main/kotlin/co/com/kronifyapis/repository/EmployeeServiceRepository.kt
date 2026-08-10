@@ -25,10 +25,4 @@ interface EmployeeServiceRepository : JpaRepository<EmployeeService, Long> {
 
     //Verifica si existe un registro activo con el empleado y servicio especificados
     fun existsByEmployeeAndServiceAndActiveTrue(employee: Employee, service: Service): Boolean
-
-    //Elimina por empleado y servicio
-    fun deleteByEmployeeAndService(employee: Employee, service: Service)
-
-    //Elimina todos los registros de un servicio
-    fun deleteAllByService(service: Service)
 }
