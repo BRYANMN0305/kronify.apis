@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 /**
  * Servicio que maneja todo el ciclo de las citas.
@@ -53,6 +54,8 @@ class AppointmentService(
     private val planService: PlanService,
     private val profileValidationHelper: ProfileValidationHelper
 ) {
+    private val COLOMBIA_ZONE = ZoneId.of("America/Bogota")
+
     /**
      * Revisa si se puede cambiar una cita de un estado a otro.
      * Por ejemplo, una cita PENDING puede pasar a CONFIRMED o CANCELLED,
@@ -169,6 +172,10 @@ class AppointmentService(
         val endAt = startAt.plusMinutes(service.durationMinutes.toLong())
         val occupiedEndAt = endAt.plusMinutes(service.bufferMinutes.toLong())
 
+        if (startAt.isBefore(LocalDateTime.now(COLOMBIA_ZONE))) {
+            throw BadRequestException("La cita debe ser en el futuro")
+        }
+
         if (startAt.isAfter(endAt) || startAt.isEqual(endAt)) {
             throw BadRequestException("La hora de inicio debe ser anterior a la hora de fin")
         }
@@ -208,23 +215,6 @@ class AppointmentService(
         return saved.toResponse(service.name, service.durationMinutes, employee, customer)
     }
 
-    /**
-     * Lista todas las citas de un negocio. Usa el userId para
-     * encontrar el negocio asociado.
-     */
-    @Transactional(readOnly = true)
-    fun listAppointments(userId: Long): List<AppointmentResponse> {
-        val business = findUserBusiness(userId)
-        val businessId = business.businessId!!
-
-        return appointmentRepository.findAllByBusiness_BusinessId(businessId).map { appointment ->
-            val service = appointment.service!!
-            val employee = appointment.employee!!
-            val customer = appointment.customer!!
-            appointment.toResponse(service.name, service.durationMinutes, employee, customer)
-        }
-    }
-
     @Transactional(readOnly = true)
     fun listAppointments(userId: Long, pageable: Pageable): Page<AppointmentResponse> {
         val business = findUserBusiness(userId)
@@ -247,29 +237,6 @@ class AppointmentService(
                 val customer = appointment.customer!!
                 appointment.toResponse(service.name, service.durationMinutes, employee, customer)
             }
-    }
-
-    /**
-     * Obtiene la agenda de uno o varios empleados en un rango de fechas.
-     * Si no se pasa employeeId y el usuario es dueno, ve la agenda de todos.
-     * Los empleados normales solo ven su propia agenda.
-     */
-    @Transactional(readOnly = true)
-    fun getEmployeeAgenda(
-        userId: Long,
-        startDate: LocalDate,
-        endDate: LocalDate,
-        employeeId: Long?
-    ): List<AppointmentResponse> {
-        return getCalendarAppointments(
-            userId = userId,
-            startDate = startDate,
-            endDate = endDate,
-            employeeId = employeeId,
-            serviceId = null,
-            status = null,
-            origin = null
-        )
     }
 
     @Transactional(readOnly = true)
@@ -415,6 +382,10 @@ class AppointmentService(
 
         if (appointment.status == AppointmentStatus.CANCELLED || appointment.status == AppointmentStatus.COMPLETED) {
             throw BadRequestException("No se puede reprogramar una cita ${appointment.status}")
+        }
+
+        if (request.startAt.isBefore(LocalDateTime.now(COLOMBIA_ZONE))) {
+            throw BadRequestException("La cita debe ser en el futuro")
         }
 
         val service = appointment.service!!
@@ -585,8 +556,9 @@ class AppointmentService(
     }
 
     /**
-     * Revisa que la cita caiga dentro del horario de atención del negocio
-     * y del horario laboral del empleado para ese día de la semana.
+     * Revisa que la cita caiga dentro del horario de atención del negocio.
+     * Si el empleado es autogestionado, también debe caer dentro de su horario
+     * semanal para ese día de la semana.
      * Si el negocio no tiene horario configurado para ese día, se rechaza.
      */
     private fun validateWithinWeeklySchedule(employee: Employee, startAt: LocalDateTime, endAt: LocalDateTime) {
@@ -600,16 +572,19 @@ class AppointmentService(
         val opening = businessOpeningHourRepository.findByBusinessAndDayOfWeekAndActiveTrue(business, startAt.dayOfWeek.value)
             ?: throw BadRequestException("El negocio no tiene horario configurado para este dia")
 
-        val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, startAt.dayOfWeek.value)
-            ?: throw BadRequestException("El empleado no tiene horario configurado para este dia")
-
         val startTime = startAt.toLocalTime()
         val endTime = endAt.toLocalTime()
-        if (startTime.isBefore(weeklySchedule.startTime) || endTime.isAfter(weeklySchedule.endTime)) {
-            throw BadRequestException("La cita esta fuera del horario laboral del empleado")
-        }
         if (startTime.isBefore(opening.startTime) || endTime.isAfter(opening.endTime)) {
             throw BadRequestException("La cita esta fuera del horario de atención del negocio")
+        }
+
+        if (employee.selfManagedSchedule) {
+            val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, startAt.dayOfWeek.value)
+                ?: throw BadRequestException("El empleado no tiene horario configurado para este dia")
+
+            if (startTime.isBefore(weeklySchedule.startTime) || endTime.isAfter(weeklySchedule.endTime)) {
+                throw BadRequestException("La cita esta fuera del horario laboral del empleado")
+            }
         }
     }
 

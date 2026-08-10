@@ -1,7 +1,6 @@
 package co.com.kronifyapis.dto.appointment
 
 
-import jakarta.validation.constraints.Future
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 import java.time.LocalDateTime
@@ -23,7 +22,6 @@ data class AppointmentCreateRequest(
     val employeeId: Long,
 
     @field:NotNull
-    @field:Future
     val startAt: LocalDateTime,
 
     val customerId: Long? = null,

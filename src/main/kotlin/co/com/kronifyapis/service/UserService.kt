@@ -6,7 +6,6 @@ import co.com.kronifyapis.dto.user.UserProfileResponse
 import co.com.kronifyapis.dto.user.UserUpdateRequest
 import co.com.kronifyapis.dto.user.UserUpdateResponse
 import co.com.kronifyapis.exception.BadRequestException
-import co.com.kronifyapis.exception.InvalidCredentialsException
 import co.com.kronifyapis.exception.ResourceNotFoundException
 import co.com.kronifyapis.model.User
 import co.com.kronifyapis.repository.UserRepository

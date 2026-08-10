@@ -18,9 +18,6 @@ import java.time.LocalDateTime
 
 interface AppointmentRepository : JpaRepository<Appointment, Long> {
 
-    //Busca todas las citas por negocio y las lista
-    fun findAllByBusiness_BusinessId(businessId: Long): List<Appointment>
-
     fun findAllByBusiness_BusinessId(businessId: Long, pageable: Pageable): Page<Appointment>
 
     fun findAllByCustomer_User_UserIdOrderByStartAtDesc(userId: Long, pageable: Pageable): Page<Appointment>

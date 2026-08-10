@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 
 /**
  * Servicio que consulta la disponibilidad de un negocio para un servicio y fecha especificos.
@@ -42,6 +43,7 @@ class AvailabilityService(
 ) {
 
     private val slotStepMinutes = 15L
+    private val COLOMBIA_ZONE = ZoneId.of("America/Bogota")
 
     /**
      * Obtiene los horarios disponibles para un servicio en una fecha.
@@ -61,7 +63,7 @@ class AvailabilityService(
         val service = serviceRepository.findByServiceIdAndBusinessBusinessIdAndActiveTrue(serviceId, business.businessId!!)
             ?: throw ResourceNotFoundException("Servicio no encontrado para este negocio")
 
-        if (date.isBefore(LocalDate.now())) {
+        if (date.isBefore(LocalDate.now(COLOMBIA_ZONE))) {
             throw BadRequestException("La fecha debe ser hoy o en el futuro")
         }
 
@@ -101,8 +103,9 @@ class AvailabilityService(
 
     /**
      * Calcula los slots disponibles para un empleado en una fecha:
-     * - Obtiene el horario de atención del negocio y el horario laboral del empleado de ese día
-     * - La ventana real es la intersección (business hours ∩ employee hours)
+     * - Obtiene el horario de atención del negocio para ese día
+     * - Si el empleado es autogestionado, la ventana es su horario semanal
+     *   (limitado al horario del negocio); si no, es el horario del negocio
      * - Busca bloqueos y citas ocupadas
      * - Usa AvailabilityCalculator para generar los espacios libres
      * - Filtra los slots que ya pasaron (no se puede agendar en pasado)
@@ -114,14 +117,21 @@ class AvailabilityService(
         date: LocalDate
     ): List<TimeSlotResponse> {
         val dayOfWeek = date.dayOfWeek.value
-        val schedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, dayOfWeek)
-            ?: return emptyList()
 
         val opening = businessOpeningHourRepository.findByBusinessAndDayOfWeekAndActiveTrue(business, dayOfWeek)
             ?: return emptyList()
 
-        val workingStart = maxOf(schedule.startTime, opening.startTime)
-        val workingEnd = minOf(schedule.endTime, opening.endTime)
+        val workingStart: LocalTime
+        val workingEnd: LocalTime
+        if (employee.selfManagedSchedule) {
+            val schedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, dayOfWeek)
+                ?: return emptyList()
+            workingStart = maxOf(schedule.startTime, opening.startTime)
+            workingEnd = minOf(schedule.endTime, opening.endTime)
+        } else {
+            workingStart = opening.startTime
+            workingEnd = opening.endTime
+        }
         if (!workingStart.isBefore(workingEnd)) return emptyList()
 
         val dayStart = LocalDateTime.of(date, LocalTime.MIDNIGHT)
@@ -170,7 +180,7 @@ class AvailabilityService(
         }
 
         val employeeName = "${employee.user?.name ?: ""} ${employee.user?.lastName ?: ""}".trim()
-        val now = LocalDateTime.now()
+        val now = LocalDateTime.now(COLOMBIA_ZONE)
 
         return AvailabilityCalculator.calculateAvailableSlots(
             workingStart = workingStart,
