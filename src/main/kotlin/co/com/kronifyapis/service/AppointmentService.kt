@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 /**
  * Servicio que maneja todo el ciclo de las citas.
@@ -53,6 +54,8 @@ class AppointmentService(
     private val planService: PlanService,
     private val profileValidationHelper: ProfileValidationHelper
 ) {
+    private val COLOMBIA_ZONE = ZoneId.of("America/Bogota")
+
     /**
      * Revisa si se puede cambiar una cita de un estado a otro.
      * Por ejemplo, una cita PENDING puede pasar a CONFIRMED o CANCELLED,
@@ -168,6 +171,10 @@ class AppointmentService(
         val startAt = request.startAt
         val endAt = startAt.plusMinutes(service.durationMinutes.toLong())
         val occupiedEndAt = endAt.plusMinutes(service.bufferMinutes.toLong())
+
+        if (startAt.isBefore(LocalDateTime.now(COLOMBIA_ZONE))) {
+            throw BadRequestException("La cita debe ser en el futuro")
+        }
 
         if (startAt.isAfter(endAt) || startAt.isEqual(endAt)) {
             throw BadRequestException("La hora de inicio debe ser anterior a la hora de fin")
@@ -375,6 +382,10 @@ class AppointmentService(
 
         if (appointment.status == AppointmentStatus.CANCELLED || appointment.status == AppointmentStatus.COMPLETED) {
             throw BadRequestException("No se puede reprogramar una cita ${appointment.status}")
+        }
+
+        if (request.startAt.isBefore(LocalDateTime.now(COLOMBIA_ZONE))) {
+            throw BadRequestException("La cita debe ser en el futuro")
         }
 
         val service = appointment.service!!
