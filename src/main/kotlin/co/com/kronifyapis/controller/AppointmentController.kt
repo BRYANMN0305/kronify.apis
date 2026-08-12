@@ -7,7 +7,9 @@ import co.com.kronifyapis.dto.appointment.AppointmentStatusUpdateRequest
 import co.com.kronifyapis.dto.auth.AuthenticatedUser
 import co.com.kronifyapis.model.enums.AppointmentOrigin
 import co.com.kronifyapis.model.enums.AppointmentStatus
+import co.com.kronifyapis.service.AppointmentEventRegistry
 import co.com.kronifyapis.service.AppointmentService
+import co.com.kronifyapis.service.JwtService
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 import java.time.LocalDate
 
 /**
@@ -32,8 +35,29 @@ import java.time.LocalDate
 @RestController
 @RequestMapping("/business/appointments")
 class AppointmentController(
-    private val appointmentService: AppointmentService
+    private val appointmentService: AppointmentService,
+    private val appointmentEventRegistry: AppointmentEventRegistry,
+    private val jwtService: JwtService
 ) {
+
+    /**
+     * Stream SSE de citas del negocio en tiempo real.
+     * Recibe el token por query param porque EventSource no permite headers.
+     * El evento "appointment.created" notifica cada cita nueva del negocio.
+     */
+    @GetMapping("/stream")
+    fun streamAppointments(
+        @RequestParam(required = false) token: String?
+    ): ResponseEntity<SseEmitter> {
+        val authenticated = token?.takeIf { jwtService.isTokenValid(it) }
+            ?.let { jwtService.extractAuthenticatedUser(it) }
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+
+        val businessId = authenticated.businessId
+            ?: return ResponseEntity.badRequest().build()
+
+        return ResponseEntity.ok(appointmentEventRegistry.subscribe(businessId))
+    }
 
     /**
      * Crea una nueva cita como negocio.

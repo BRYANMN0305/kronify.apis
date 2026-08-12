@@ -52,7 +52,8 @@ class AppointmentService(
     private val weeklyScheduleRepository: WeeklyScheduleRepository,
     private val businessOpeningHourRepository: BusinessOpeningHourRepository,
     private val planService: PlanService,
-    private val profileValidationHelper: ProfileValidationHelper
+    private val profileValidationHelper: ProfileValidationHelper,
+    private val appointmentEventRegistry: AppointmentEventRegistry
 ) {
     private val COLOMBIA_ZONE = ZoneId.of("America/Bogota")
 
@@ -214,7 +215,10 @@ class AppointmentService(
         )
 
         val saved = appointmentRepository.save(appointment)
-        return saved.toResponse(service.name, service.durationMinutes, employee, customer)
+        val response = saved.toResponse(service.name, service.durationMinutes, employee, customer)
+        // Notifica a los calendarios conectados del negocio para que la cita aparezca en tiempo real
+        appointmentEventRegistry.publishAppointmentCreated(businessId, response)
+        return response
     }
 
     @Transactional(readOnly = true)
