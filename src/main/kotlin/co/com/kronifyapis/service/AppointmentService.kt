@@ -557,8 +557,8 @@ class AppointmentService(
 
     /**
      * Revisa que la cita caiga dentro del horario de atención del negocio.
-     * Si el empleado es autogestionado, también debe caer dentro de su horario
-     * semanal para ese día de la semana.
+     * Si el empleado es autogestionado y tiene horario semanal para ese día,
+     * también debe caer dentro de su horario semanal.
      * Si el negocio no tiene horario configurado para ese día, se rechaza.
      */
     private fun validateWithinWeeklySchedule(employee: Employee, startAt: LocalDateTime, endAt: LocalDateTime) {
@@ -580,7 +580,9 @@ class AppointmentService(
 
         if (employee.selfManagedSchedule) {
             val weeklySchedule = weeklyScheduleRepository.findByEmployeeAndDayOfWeekAndActiveTrue(employee, startAt.dayOfWeek.value)
-                ?: throw BadRequestException("El empleado no tiene horario configurado para este dia")
+            if (weeklySchedule == null) {
+                return
+            }
 
             if (startTime.isBefore(weeklySchedule.startTime) || endTime.isAfter(weeklySchedule.endTime)) {
                 throw BadRequestException("La cita esta fuera del horario laboral del empleado")
