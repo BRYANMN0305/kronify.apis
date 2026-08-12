@@ -207,7 +207,9 @@ class AppointmentService(
             customer = customer,
             startAt = startAt,
             endAt = endAt,
-            status = AppointmentStatus.PENDING,
+            // Las citas creadas desde el panel del negocio quedan confirmadas de inmediato;
+            // las creadas por clientes desde la página pública quedan pendientes de confirmación.
+            status = if (origin == AppointmentOrigin.PRIVATE) AppointmentStatus.CONFIRMED else AppointmentStatus.PENDING,
             origin = origin
         )
 
