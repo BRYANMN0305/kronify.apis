@@ -106,7 +106,8 @@ class AvailabilityService(
      * - Obtiene el horario de atención del negocio para ese día
      * - Si el empleado es autogestionado y tiene horario semanal para ese día,
      *   la ventana es su horario semanal (limitado al horario del negocio);
-     *   si no tiene horario configurado, usa el horario del negocio
+     *   si no tiene ningún horario configurado, usa el horario del negocio;
+     *   si tiene horarios pero no para ese día, no está disponible
      * - Busca bloqueos y citas ocupadas
      * - Usa AvailabilityCalculator para generar los espacios libres
      * - Filtra los slots que ya pasaron (no se puede agendar en pasado)
@@ -129,9 +130,11 @@ class AvailabilityService(
             if (schedule != null) {
                 workingStart = maxOf(schedule.startTime, opening.startTime)
                 workingEnd = minOf(schedule.endTime, opening.endTime)
-            } else {
+            } else if (weeklyScheduleRepository.findAllByEmployeeAndActiveTrue(employee).isEmpty()) {
                 workingStart = opening.startTime
                 workingEnd = opening.endTime
+            } else {
+                return emptyList()
             }
         } else {
             workingStart = opening.startTime
