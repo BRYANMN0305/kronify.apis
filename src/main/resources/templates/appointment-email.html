@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${heading}">Cita en Kronify</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+</head>
+<body style="margin:0; padding:0; background-color:#eef0f3; font-family: Arial, Helvetica, sans-serif;">
+
+<!-- Preheader (texto oculto que se ve en la vista previa del correo) -->
+<div style="display:none; max-height:0; overflow:hidden; mso-hide:all;" th:text="${preheader}">
+    Información sobre tu cita.
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       style="background-color:#eef0f3; padding:32px 16px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="520" cellpadding="0" cellspacing="0"
+                   style="max-width:520px; width:100%; background-color:#ffffff; border-radius:8px; border:1px solid #e2e5e9;">
+
+                <!-- Header -->
+                <tr>
+                    <td style="padding:28px 40px; border-bottom:1px solid #eef0f3;">
+                        <span style="color:#1a2b4c; font-size:18px; font-weight:bold; font-family: Arial, sans-serif;">Kronify</span>
+                    </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                    <td style="padding:40px 40px 8px 40px;">
+                        <h1 style="margin:0 0 16px 0; color:#1a2b4c; font-size:20px; font-weight:bold; line-height:1.3;"
+                            th:text="${heading}">
+                            Información de tu cita
+                        </h1>
+                        <p style="margin:0 0 16px 0; color:#4a4f57; font-size:15px; line-height:1.6;">
+                            Hola, <strong style="color:#1a2b4c;" th:text="${recipientName}">cliente</strong>:
+                        </p>
+                        <p style="margin:0 0 24px 0; color:#4a4f57; font-size:15px; line-height:1.6;"
+                           th:text="${intro}">
+                            Este correo contiene la información de la cita.
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Appointment details -->
+                <tr>
+                    <td style="padding:0 40px 24px 40px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                               style="background-color:#f7f8fa; border-radius:6px; border:1px solid #e9ecf0;">
+                            <tr>
+                                <td style="padding:20px 22px 8px 22px;">
+                                    <p style="margin:0 0 14px 0; color:#1a2b4c; font-size:13px; font-weight:bold; letter-spacing:0.4px; text-transform:uppercase;">
+                                        Detalles de la cita
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:0 22px 20px 22px;">
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td style="padding:0 0 10px 0; color:#8a8f98; font-size:13px; width:100px; vertical-align:top;">Negocio</td>
+                                            <td style="padding:0 0 10px 0; color:#1a2b4c; font-size:14px; font-weight:bold;"
+                                                th:text="${businessName}">Negocio</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:0 0 10px 0; color:#8a8f98; font-size:13px; vertical-align:top;">Servicio</td>
+                                            <td style="padding:0 0 10px 0; color:#1a2b4c; font-size:14px; font-weight:bold;"
+                                                th:text="${serviceName}">Servicio</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:0 0 10px 0; color:#8a8f98; font-size:13px; vertical-align:top;">Empleado</td>
+                                            <td style="padding:0 0 10px 0; color:#1a2b4c; font-size:14px; font-weight:bold;"
+                                                th:text="${employeeName}">Empleado</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:0 0 10px 0; color:#8a8f98; font-size:13px; vertical-align:top;">Fecha</td>
+                                            <td style="padding:0 0 10px 0; color:#1a2b4c; font-size:14px; font-weight:bold;"
+                                                th:text="${dateText}">Fecha</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:0 0 10px 0; color:#8a8f98; font-size:13px; vertical-align:top;">Hora</td>
+                                            <td style="padding:0 0 10px 0; color:#1a2b4c; font-size:14px; font-weight:bold;"
+                                                th:text="${timeText}">Hora</td>
+                                        </tr>
+                                        <tr th:if="${durationText != null and !#strings.isEmpty(durationText)}">
+                                            <td style="padding:0; color:#8a8f98; font-size:13px; vertical-align:top;">Duración</td>
+                                            <td style="padding:0; color:#1a2b4c; font-size:14px; font-weight:bold;"
+                                                th:text="${durationText}">Duración</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Cancellation reason -->
+                <tr th:if="${cancellationReason != null and !#strings.isEmpty(cancellationReason)}">
+                    <td style="padding:0 40px 24px 40px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                               style="background-color:#fff5f5; border-radius:6px; border:1px solid #f3d6d6;">
+                            <tr>
+                                <td style="padding:16px 20px;">
+                                    <p style="margin:0 0 4px 0; color:#9b3d3d; font-size:12px; font-weight:bold; text-transform:uppercase; letter-spacing:0.4px;">
+                                        Motivo
+                                    </p>
+                                    <p style="margin:0; color:#6b3b3b; font-size:14px; line-height:1.5;"
+                                       th:text="${cancellationReason}">
+                                        Motivo de la cancelación
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Note -->
+                <tr th:if="${note != null and !#strings.isEmpty(note)}">
+                    <td style="padding:0 40px 32px 40px;">
+                        <p style="margin:0; color:#4a4f57; font-size:14px; line-height:1.6;"
+                           th:text="${note}">
+                            Nota adicional.
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Divider -->
+                <tr>
+                    <td style="padding:0 40px;">
+                        <div style="border-top:1px solid #eef0f3;"></div>
+                    </td>
+                </tr>
+
+                <!-- Notice -->
+                <tr>
+                    <td style="padding:24px 40px;">
+                        <p style="margin:0; color:#8a8f98; font-size:12px; line-height:1.6;">
+                            Este correo contiene información sobre una cita agendada en Kronify.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Footer fuera de la tarjeta -->
+            <table role="presentation" width="520" cellpadding="0" cellspacing="0"
+                   style="max-width:520px; width:100%; margin-top:20px;">
+                <tr>
+                    <td style="text-align:center; padding:0 20px;">
+                        <p style="margin:0 0 4px 0; color:#9298a1; font-size:12px;">
+                            Este es un mensaje automático, por favor no respondas a este correo.
+                        </p>
+                        <p style="margin:0; color:#9298a1; font-size:12px;">
+                            &copy; Kronify · Todos los derechos reservados
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

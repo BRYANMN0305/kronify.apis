@@ -53,18 +53,22 @@ class AppointmentService(
     private val businessOpeningHourRepository: BusinessOpeningHourRepository,
     private val planService: PlanService,
     private val profileValidationHelper: ProfileValidationHelper,
-    private val appointmentEventRegistry: AppointmentEventRegistry
+    private val appointmentEventRegistry: AppointmentEventRegistry,
+    private val appointmentNotificationPublisher: AppointmentNotificationPublisher
 ) {
     private val COLOMBIA_ZONE = ZoneId.of("America/Bogota")
 
     /**
      * Revisa si se puede cambiar una cita de un estado a otro.
-     * Por ejemplo, una cita PENDING puede pasar a CONFIRMED o CANCELLED,
-     * pero una CANCELLED ya no se puede cambiar a nada mas.
+     * Una cita PENDING puede confirmarse o cerrarse (completada / no asistió)
+     * según su hora; una CANCELLED ya no se puede cambiar a nada mas.
      */
     private fun isAllowedTransition(current: AppointmentStatus, next: AppointmentStatus): Boolean {
         return when (current) {
-            AppointmentStatus.PENDING -> next == AppointmentStatus.CONFIRMED || next == AppointmentStatus.CANCELLED
+            AppointmentStatus.PENDING -> next == AppointmentStatus.CONFIRMED ||
+                next == AppointmentStatus.CANCELLED ||
+                next == AppointmentStatus.COMPLETED ||
+                next == AppointmentStatus.NO_SHOW
             AppointmentStatus.CONFIRMED -> next == AppointmentStatus.COMPLETED || next == AppointmentStatus.CANCELLED || next == AppointmentStatus.NO_SHOW
             AppointmentStatus.CANCELLED -> false
             AppointmentStatus.COMPLETED -> false
@@ -173,7 +177,7 @@ class AppointmentService(
         val endAt = startAt.plusMinutes(service.durationMinutes.toLong())
         val occupiedEndAt = endAt.plusMinutes(service.bufferMinutes.toLong())
 
-        if (startAt.isBefore(LocalDateTime.now(COLOMBIA_ZONE))) {
+        if (!startAt.isAfter(LocalDateTime.now(COLOMBIA_ZONE))) {
             throw BadRequestException("La cita debe ser en el futuro")
         }
 
@@ -218,6 +222,15 @@ class AppointmentService(
         val response = saved.toResponse(service.name, service.durationMinutes, employee, customer)
         // Notifica a los calendarios conectados del negocio para que la cita aparezca en tiempo real
         appointmentEventRegistry.publishAppointmentCreated(businessId, response)
+        // Las citas del panel ya quedan confirmadas; las públicas esperan confirmación.
+        appointmentNotificationPublisher.publish(
+            saved,
+            if (origin == AppointmentOrigin.PRIVATE) {
+                AppointmentNotificationType.BUSINESS_BOOKING_CONFIRMED
+            } else {
+                AppointmentNotificationType.PUBLIC_BOOKING_PENDING
+            }
+        )
         return response
     }
 
@@ -352,6 +365,23 @@ class AppointmentService(
             throw BadRequestException("No se permite cambiar de $currentStatus a $newStatus")
         }
 
+        // Una cita solo puede confirmarse mientras su hora de inicio siga en el futuro.
+        // La comparación es estricta: si ya comenzó (o comienza en este instante), se rechaza.
+        if (newStatus == AppointmentStatus.CONFIRMED &&
+            !appointment.startAt.isAfter(LocalDateTime.now(COLOMBIA_ZONE))
+        ) {
+            throw BadRequestException("No se puede confirmar una cita que ya pasó. La hora de inicio debe ser futura")
+        }
+
+        // Una cita pendiente puede cerrarse como completada o no asistió una vez
+        // que ya comenzó; antes no hay asistencia real que registrar.
+        if (currentStatus == AppointmentStatus.PENDING &&
+            (newStatus == AppointmentStatus.COMPLETED || newStatus == AppointmentStatus.NO_SHOW) &&
+            appointment.startAt.isAfter(LocalDateTime.now(COLOMBIA_ZONE))
+        ) {
+            throw BadRequestException("Solo se puede cerrar una cita que ya comenzó")
+        }
+
         appointment.status = newStatus
         appointment.cancellationReason = request.cancellationReason
 
@@ -359,6 +389,16 @@ class AppointmentService(
         val service = saved.service!!
         val emp = saved.employee!!
         val customer = saved.customer!!
+        val notificationType = when (newStatus) {
+            AppointmentStatus.CONFIRMED -> AppointmentNotificationType.APPOINTMENT_CONFIRMED
+            AppointmentStatus.CANCELLED -> AppointmentNotificationType.APPOINTMENT_CANCELLED_BY_BUSINESS
+            AppointmentStatus.COMPLETED -> AppointmentNotificationType.APPOINTMENT_COMPLETED
+            AppointmentStatus.NO_SHOW -> AppointmentNotificationType.APPOINTMENT_NO_SHOW
+            AppointmentStatus.PENDING -> null
+        }
+        if (notificationType != null) {
+            appointmentNotificationPublisher.publish(saved, notificationType)
+        }
         return saved.toResponse(service.name, service.durationMinutes, emp, customer)
     }
 
@@ -390,7 +430,7 @@ class AppointmentService(
             throw BadRequestException("No se puede reprogramar una cita ${appointment.status}")
         }
 
-        if (request.startAt.isBefore(LocalDateTime.now(COLOMBIA_ZONE))) {
+        if (!request.startAt.isAfter(LocalDateTime.now(COLOMBIA_ZONE))) {
             throw BadRequestException("La cita debe ser en el futuro")
         }
 
@@ -420,9 +460,12 @@ class AppointmentService(
 
         appointment.startAt = request.startAt
         appointment.endAt = newEndAt
+        // Una nueva fecha merece un nuevo recordatorio.
+        appointment.reminderSentAt = null
 
         val saved = appointmentRepository.save(appointment)
         val customer = saved.customer!!
+        appointmentNotificationPublisher.publish(saved, AppointmentNotificationType.APPOINTMENT_RESCHEDULED)
         return saved.toResponse(service.name, service.durationMinutes, employee, customer)
     }
 
@@ -450,6 +493,7 @@ class AppointmentService(
         val service = saved.service!!
         val employee = saved.employee!!
         val customer = saved.customer!!
+        appointmentNotificationPublisher.publish(saved, AppointmentNotificationType.APPOINTMENT_CANCELLED_BY_CLIENT)
         return saved.toResponse(service.name, service.durationMinutes, employee, customer)
     }
 

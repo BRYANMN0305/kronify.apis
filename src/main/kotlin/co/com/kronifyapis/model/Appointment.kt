@@ -80,6 +80,11 @@ data class Appointment(
     @Column(name = "cancellation_reason")
     var cancellationReason: String? = null,
 
+    // Marca la última vez que se envió el recordatorio de esta cita.
+    // Se limpia al reprogramar para que el recordatorio vuelva a enviarse.
+    @Column(name = "reminder_sent_at")
+    var reminderSentAt: LocalDateTime? = null,
+
     @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
 

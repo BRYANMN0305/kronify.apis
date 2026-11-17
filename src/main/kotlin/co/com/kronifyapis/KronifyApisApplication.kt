@@ -2,12 +2,14 @@ package co.com.kronifyapis
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
+import org.springframework.scheduling.annotation.EnableScheduling
 
 /**
  * Clase principal de la aplicación Kronify Kotlin API.
  * Levanta el contexto de Spring Boot con toda la configuración.
  */
 @SpringBootApplication
+@EnableScheduling
 class KronifyApisApplication
 
 /**

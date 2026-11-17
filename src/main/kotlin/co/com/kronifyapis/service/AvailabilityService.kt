@@ -207,6 +207,6 @@ class AvailabilityService(
                     endAt = endAt
                 )
             }
-            .filter { !it.startAt.isBefore(now) }
+            .filter { it.startAt.isAfter(now) }
     }
 }

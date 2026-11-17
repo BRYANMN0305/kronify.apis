@@ -60,18 +60,26 @@ spring:
     port: 587
     username: ${GMAIL_USERNAME}
     password: ${GMAIL_APP_PASSWORD}
+    default-encoding: UTF-8
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 app:
   jwt:
     secret: ${JWT_SECRET}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES}
   frontend-url: ${FRONTEND_URL}
+  mail:
+    enabled: ${MAIL_ENABLED:true}
+    test-recipient: "${MAIL_TEST_RECIPIENT:}"
+    max-attempts: ${MAIL_MAX_ATTEMPTS:3}
   upload:
     path: ${UPLOAD_DIR:./uploads}
   admin:
